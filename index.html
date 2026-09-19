@@ -230,6 +230,7 @@
   .mov-row .mr-desc{font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .mov-row .mr-tags{font-size:11.5px; color:var(--ink-soft); margin-top:2px; display:flex; gap:6px; flex-wrap:wrap;}
   .mov-row .mr-tag{background:var(--accent-soft); color:var(--accent); padding:1px 7px; border-radius:999px;}
+  .mov-row .mr-tag.pendiente{background:var(--warn-soft); color:var(--warn); font-weight:700;}
   .mov-row .mr-monto{font-size:14.5px; font-weight:700; text-align:right; width:110px; flex-shrink:0;}
   .mov-row .mr-monto.ingreso{color:var(--ok);}
   .mov-row .mr-monto.egreso{color:var(--danger);}
@@ -241,6 +242,8 @@
   .tipo-toggle button.egreso.active{background:var(--danger-soft); color:var(--danger); border-color:var(--danger);}
   .tipo-toggle button.prestamo.active{background:var(--sold-soft); color:var(--sold); border-color:var(--sold);}
   .mov-row .mr-monto.prestamo{color:var(--sold);}
+  .check-row{display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13.5px; color:var(--ink); cursor:pointer;}
+  .check-row input{width:auto; flex-shrink:0;}
 
   .modal-bg{
     display:none; position:fixed; inset:0; background:rgba(20,17,12,.5); z-index:200;
@@ -285,6 +288,27 @@
   .chart-legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
   .chart-legend .item{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft);}
   .chart-legend .swatch{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
+
+  /* Cierres mensuales */
+  .cierres-header{display:flex; justify-content:flex-end; margin-bottom:12px;}
+  .cierres-total-pendiente{background:var(--warn-soft); color:var(--warn); border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700;}
+  .cierres-total-pendiente.ok{background:var(--ok-soft); color:var(--ok);}
+  .mes-list{display:flex; flex-direction:column; gap:10px;}
+  .mes-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px;}
+  .mes-card .mes-top{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .mes-card .mes-nombre{font-weight:700; font-size:15px; text-transform:capitalize;}
+  .mes-card .mes-badge-actual{font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); padding:2px 8px; border-radius:999px;}
+  .mes-stats-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .mes-stat .lbl{font-size:11px; color:var(--ink-soft); text-transform:uppercase; font-weight:700; letter-spacing:.3px;}
+  .mes-stat .val{font-size:16px; font-weight:700; margin-top:2px;}
+  .mes-stat .val.pos{color:var(--ok);}
+  .mes-stat .val.neg{color:var(--danger);}
+  .mes-delta{font-size:11px; margin-top:3px; font-weight:600;}
+  .mes-delta.up{color:var(--ok);}
+  .mes-delta.down{color:var(--danger);}
+  .mes-top-cats{margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-soft);}
+  .mes-pendiente-line{margin-top:8px; font-size:13px; color:var(--warn); font-weight:600;}
+  @media (max-width:520px){ .mes-stats-grid{grid-template-columns:1fr 1fr;} }
 </style>
 </head>
 <body>
@@ -344,6 +368,7 @@
       <button id="subtab-ideas" onclick="showSubtab('ideas')">Ideas</button>
       <button id="subtab-renders" onclick="showSubtab('renders')">Renders realistas</button>
       <button id="subtab-cajaobra" onclick="showSubtab('cajaobra')">Caja de esta obra</button>
+      <button id="subtab-estadisticas" onclick="showSubtab('estadisticas')">Estadísticas</button>
     </nav>
 
     <div id="sub-planos" class="subview active">
@@ -399,6 +424,14 @@
       </div>
       <div id="cajaobra-list" class="mov-list"></div>
     </div>
+
+    <div id="sub-estadisticas" class="subview">
+      <div class="moneda-toggle">
+        <button class="mt-ars active" onclick="setCajaMoneda('ARS')">Pesos (ARS)</button>
+        <button class="mt-usd" onclick="setCajaMoneda('USD')">Dólares (USD)</button>
+      </div>
+      <div id="emp-stats-mensual"></div>
+    </div>
   </section>
 
   <!-- GENERAL -->
@@ -415,9 +448,12 @@
 
     <div id="charts-general" class="charts-grid"></div>
 
+    <h2 style="font-size:17px; margin:0 0 12px;">Cierres mensuales</h2>
+    <div id="cierres-general" style="margin-bottom:22px;"></div>
+
     <div class="moneda-toggle" id="moneda-toggle">
-      <button id="mt-ars" class="active" onclick="setCajaMoneda('ARS')">Pesos (ARS)</button>
-      <button id="mt-usd" onclick="setCajaMoneda('USD')">Dólares (USD)</button>
+      <button id="mt-ars" class="mt-ars active" onclick="setCajaMoneda('ARS')">Pesos (ARS)</button>
+      <button id="mt-usd" class="mt-usd" onclick="setCajaMoneda('USD')">Dólares (USD)</button>
     </div>
 
     <div class="caja-filtros">
@@ -547,6 +583,10 @@
       <select id="mov-emp">
         <option value="">General (sin obra)</option>
       </select>
+    </div>
+
+    <div id="mov-block-pendiente" style="display:none;">
+      <label class="check-row"><input type="checkbox" id="mov-pendiente"> Marcar como pendiente de pago (todavía no se pagó)</label>
     </div>
 
     <div id="mov-block-prestamo" style="display:none;">
@@ -715,6 +755,7 @@ function showSubtab(name){
   document.getElementById('subtab-'+name).classList.add('active');
   if(name==='renders') renderRenderSrcOptions();
   if(name==='cajaobra') renderCajaObra();
+  if(name==='estadisticas') renderEstadisticasEmp();
   updateSidebarActive();
 }
 
@@ -753,6 +794,7 @@ function renderSidebarEmp(){
           <button onclick="abrirEmpSection('${id}','ideas')">Ideas</button>
           <button onclick="abrirEmpSection('${id}','renders')">Renders realistas</button>
           <button onclick="abrirEmpSection('${id}','cajaobra')">Caja de esta obra</button>
+          <button onclick="abrirEmpSection('${id}','estadisticas')">Estadísticas</button>
         </div>
       </div>`;
   }).join('');
@@ -933,6 +975,7 @@ function renderDetail(){
   renderIdeas();
   renderRenders();
   if(document.getElementById('subtab-cajaobra').classList.contains('active')) renderCajaObra();
+  if(document.getElementById('subtab-estadisticas').classList.contains('active')) renderEstadisticasEmp();
 }
 
 // ---------- PLANOS ----------
@@ -1193,9 +1236,10 @@ async function eliminarRender(id){
 // ---------- CAJA ----------
 function setCajaMoneda(m){
   cajaMoneda = m;
-  document.getElementById('mt-ars').classList.toggle('active', m==='ARS');
-  document.getElementById('mt-usd').classList.toggle('active', m==='USD');
+  document.querySelectorAll('.mt-ars').forEach(b=>b.classList.toggle('active', m==='ARS'));
+  document.querySelectorAll('.mt-usd').forEach(b=>b.classList.toggle('active', m==='USD'));
   renderCaja();
+  renderEstadisticasEmp();
 }
 
 function signoParaContexto(m, contextEmpId){
@@ -1273,6 +1317,7 @@ function renderMovRow(id, saldo, contextEmpId, mostrarEmpTag){
     descTexto = m.descripcion || m.categoria || '';
     tagExtra = [
       `<span class="mr-tag">${esc(m.categoria||'')}</span>`,
+      (m.tipo==='egreso' && m.estadoPago==='pendiente') ? `<span class="mr-tag pendiente">Pendiente</span>` : '',
       mostrarEmpTag ? `<span class="mr-tag">${emp ? esc(emp.nombre) : 'General'}</span>` : ''
     ].join('');
     claseMonto = m.tipo;
@@ -1317,6 +1362,7 @@ function renderCaja(){
   const html = conSaldo.slice().reverse().map(x=>renderMovRow(x.id, x.saldo, contextoParaFila, true)).join('');
   document.getElementById('caja-list').innerHTML = html || '<div style="padding:24px;text-align:center;color:var(--ink-soft);font-size:13.5px;">No hay movimientos en esta moneda todavía.</div>';
   renderChartsGeneral();
+  renderCierresGeneral();
 }
 
 // ---------- gráficos (sección General) ----------
@@ -1325,6 +1371,12 @@ function mesLabel(ym){
   const [y,m] = ym.split('-');
   return meses[Number(m)-1] + ' ' + y.slice(2);
 }
+function mesLabelLarga(ym){
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const [y,m] = ym.split('-');
+  return meses[Number(m)-1] + ' ' + y;
+}
+function mesActualYM(){ return hoyISO().slice(0,7); }
 function fmtCompacto(n){
   const abs = Math.abs(n);
   let s;
@@ -1398,6 +1450,125 @@ function computeSaldoPorEmprendimiento(moneda){
     id, nombre: state.emprendimientos[id].nombre,
     saldo: calcularSaldos(id)[moneda]
   }));
+}
+
+// ---------- estadísticas mensuales / cierres ----------
+function computeMonthlyStats(contextEmpId, moneda){
+  const porMes = {}; // ym -> {ingresos, egresos, pendiente, cats:{}}
+  Object.values(state.movimientos).forEach(m=>{
+    if(m.moneda !== moneda) return;
+    if(!movPerteneceAContexto(m, contextEmpId)) return;
+    const signo = signoParaContexto(m, contextEmpId);
+    if(signo===0) return; // préstamo que no afecta a este contexto
+    const ym = m.fecha.slice(0,7);
+    if(!porMes[ym]) porMes[ym] = {ingresos:0, egresos:0, pendiente:0, cats:{}};
+    const monto = Number(m.monto||0);
+    if(signo>0){
+      porMes[ym].ingresos += monto;
+    }else{
+      porMes[ym].egresos += monto;
+      const cat = m.categoria || 'Sin categoría';
+      porMes[ym].cats[cat] = (porMes[ym].cats[cat]||0) + monto;
+      if(m.tipo==='egreso' && m.estadoPago==='pendiente') porMes[ym].pendiente += monto;
+    }
+  });
+  const meses = Object.keys(porMes).sort(); // ascendente
+  const out = meses.map((ym,i)=>{
+    const d = porMes[ym];
+    const saldo = d.ingresos - d.egresos;
+    const prev = i>0 ? porMes[meses[i-1]] : null;
+    const prevSaldo = prev ? (prev.ingresos - prev.egresos) : null;
+    const topCats = Object.keys(d.cats).map(cat=>({cat, monto:d.cats[cat]})).sort((a,b)=>b.monto-a.monto).slice(0,3);
+    return {
+      ym,
+      ingresos: d.ingresos, egresos: d.egresos, saldo, pendiente: d.pendiente, topCats,
+      deltaIngresos: prev ? (d.ingresos - prev.ingresos) : null,
+      deltaEgresos: prev ? (d.egresos - prev.egresos) : null,
+      deltaSaldo: prev ? (saldo - prevSaldo) : null,
+    };
+  });
+  return out.reverse(); // más reciente primero
+}
+
+function computeTotalPendiente(contextEmpId, moneda){
+  let total = 0, count = 0;
+  Object.values(state.movimientos).forEach(m=>{
+    if(m.moneda!==moneda || m.tipo!=='egreso' || m.estadoPago!=='pendiente') return;
+    if(!movPerteneceAContexto(m, contextEmpId)) return;
+    total += Number(m.monto||0);
+    count++;
+  });
+  return {total, count};
+}
+
+function renderMesDelta(valor, moneda, invertido){
+  if(valor===null || valor===undefined) return '';
+  if(valor===0) return `<div class="mes-delta">= igual que el mes anterior</div>`;
+  const subio = valor>0;
+  const bueno = invertido ? !subio : subio;
+  const cls = bueno ? 'up' : 'down';
+  const flecha = subio ? '▲' : '▼';
+  return `<div class="mes-delta ${cls}">${flecha} ${fmtMonto(Math.abs(valor), moneda)} vs. mes anterior</div>`;
+}
+
+function renderCierresPanel(contenedorId, contextEmpId){
+  const moneda = cajaMoneda;
+  const cont = document.getElementById(contenedorId);
+  if(!cont) return;
+  const stats = computeMonthlyStats(contextEmpId, moneda);
+  const pend = computeTotalPendiente(contextEmpId, moneda);
+  const currentYm = mesActualYM();
+  const pendienteHtml = pend.total>0
+    ? `<div class="cierres-total-pendiente">⚠ Pendiente de pago hoy: ${fmtMonto(pend.total, moneda)} (${pend.count} movimiento${pend.count===1?'':'s'})</div>`
+    : `<div class="cierres-total-pendiente ok">✓ No hay pagos pendientes</div>`;
+  if(!stats.length){
+    cont.innerHTML = `<div class="cierres-header">${pendienteHtml}</div><div class="chart-empty">Todavía no hay movimientos para armar estadísticas mensuales.</div>`;
+    return;
+  }
+  const mesesHtml = stats.map(s=>{
+    const esActual = s.ym === currentYm;
+    const topCatsHtml = s.topCats.length
+      ? `<div class="mes-top-cats">Principales gastos: ${s.topCats.map(c=>`${esc(c.cat)} (${fmtCompacto(c.monto)})`).join(', ')}</div>`
+      : '';
+    const pendienteLineHtml = s.pendiente>0
+      ? `<div class="mes-pendiente-line">⚠ De este mes, ${fmtMonto(s.pendiente, moneda)} sigue pendiente de pago</div>`
+      : '';
+    return `<div class="mes-card">
+      <div class="mes-top">
+        <span class="mes-nombre">${mesLabelLarga(s.ym)}</span>
+        ${esActual ? '<span class="mes-badge-actual">Mes en curso</span>' : ''}
+      </div>
+      <div class="mes-stats-grid">
+        <div class="mes-stat">
+          <div class="lbl">Ingresos</div>
+          <div class="val pos">${fmtMonto(s.ingresos, moneda)}</div>
+          ${renderMesDelta(s.deltaIngresos, moneda, false)}
+        </div>
+        <div class="mes-stat">
+          <div class="lbl">Egresos</div>
+          <div class="val neg">${fmtMonto(s.egresos, moneda)}</div>
+          ${renderMesDelta(s.deltaEgresos, moneda, true)}
+        </div>
+        <div class="mes-stat">
+          <div class="lbl">Saldo del mes</div>
+          <div class="val ${s.saldo<0?'neg':'pos'}">${fmtMonto(s.saldo, moneda)}</div>
+          ${renderMesDelta(s.deltaSaldo, moneda, false)}
+        </div>
+      </div>
+      ${topCatsHtml}
+      ${pendienteLineHtml}
+    </div>`;
+  }).join('');
+  cont.innerHTML = `<div class="cierres-header">${pendienteHtml}</div><div class="mes-list">${mesesHtml}</div>`;
+}
+
+function renderCierresGeneral(){
+  renderCierresPanel('cierres-general', undefined);
+}
+
+function renderEstadisticasEmp(){
+  if(!currentEmpId) return;
+  renderCierresPanel('emp-stats-mensual', currentEmpId);
 }
 
 function renderChartsGeneral(){
@@ -1601,6 +1772,7 @@ function setMovTipo(t){
   document.getElementById('mov-tipo-prestamo').classList.toggle('active', t==='prestamo');
   document.getElementById('mov-block-normal').style.display = t==='prestamo' ? 'none' : '';
   document.getElementById('mov-block-prestamo').style.display = t==='prestamo' ? '' : 'none';
+  document.getElementById('mov-block-pendiente').style.display = t==='egreso' ? '' : 'none';
 }
 
 function openNuevoMov(empIdForzado){
@@ -1615,6 +1787,7 @@ function openNuevoMov(empIdForzado){
   document.getElementById('mov-categoria').value = 'Materiales';
   document.getElementById('mov-desc').value = '';
   document.getElementById('mov-emp').value = empIdForzado || '';
+  document.getElementById('mov-pendiente').checked = false;
   if(empIdForzado) document.getElementById('mov-emp-origen').value = empIdForzado;
   document.getElementById('mov-comp-preview').style.display = 'none';
   document.getElementById('mov-comp-input').value = '';
@@ -1632,6 +1805,7 @@ function openEditarMov(id){
   document.getElementById('mov-moneda').value = m.moneda;
   document.getElementById('mov-monto').value = m.monto;
   document.getElementById('mov-desc').value = m.descripcion || '';
+  document.getElementById('mov-pendiente').checked = (m.tipo==='egreso' && m.estadoPago==='pendiente');
   if(m.tipo==='prestamo'){
     document.getElementById('mov-emp-origen').value = m.empOrigenId || '';
     document.getElementById('mov-emp-destino').value = m.empDestinoId || '';
@@ -1693,6 +1867,7 @@ async function guardarMov(){
       descripcion: document.getElementById('mov-desc').value.trim(),
       empOrigenId, empDestinoId, empId: null,
       comprobante: movComprobanteActual || null,
+      estadoPago: null,
     };
   }else{
     datos = {
@@ -1705,6 +1880,7 @@ async function guardarMov(){
       empId: document.getElementById('mov-emp').value || null,
       empOrigenId: null, empDestinoId: null,
       comprobante: movComprobanteActual || null,
+      estadoPago: movTipoActual==='egreso' ? (document.getElementById('mov-pendiente').checked ? 'pendiente' : 'pagado') : null,
     };
   }
   const btn = document.getElementById('btn-guardar-mov');
