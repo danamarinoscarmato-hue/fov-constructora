@@ -639,7 +639,7 @@
 
 <script>
 /* ---------------------------------------------------------------
-   FOV — Gestión de Emprendimientos + Caja
+   SANTVAL — Gestión de Emprendimientos + Caja
    App de una sola página. Datos en Firebase Realtime Database
    (bajo el nodo "fov" para no chocar con otras apps del mismo
    proyecto Firebase). Imágenes/comprobantes guardados como base64
@@ -1966,7 +1966,7 @@ function descargarBackup(){
   const blob = new Blob([JSON.stringify({emprendimientos: state.emprendimientos, movimientos: state.movimientos}, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'fov-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'santval-backup-' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
 }
 async function restaurarBackup(ev){
