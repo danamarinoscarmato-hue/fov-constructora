@@ -34,27 +34,66 @@
     min-height:100vh;
     padding-bottom:60px;
   }
-  header.topbar{
-    position:sticky; top:0; z-index:50;
-    background:var(--ink);
-    color:#fff;
-    padding:14px 18px;
-    display:flex; align-items:center; justify-content:space-between;
-    box-shadow:var(--shadow);
-    flex-wrap:wrap; gap:8px;
+  .app-shell{display:flex; align-items:stretch; min-height:100vh;}
+  .sidebar{
+    width:252px; flex-shrink:0; background:var(--ink); color:#fff;
+    display:flex; flex-direction:column; gap:1px;
+    position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto; z-index:60;
+    padding:16px 10px 24px;
   }
-  header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:.2px;}
-  header.topbar .brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent);}
-  nav.tabs{display:flex; gap:4px;}
-  nav.tabs button{
-    background:transparent; border:none; color:#D9D6CF; padding:8px 14px;
-    border-radius:10px; font-size:14px; cursor:pointer; font-weight:600;
+  .sidebar-brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:.2px; padding:4px 10px 18px;}
+  .sidebar-brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent);}
+  .side-link{
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    background:transparent; border:none; color:#D9D6CF; padding:10px 12px;
+    border-radius:10px; font-size:14.5px; cursor:pointer; font-weight:600;
   }
-  nav.tabs button.active{background:rgba(255,255,255,.12); color:#fff;}
-  nav.tabs button:hover{color:#fff;}
-  main{max-width:1080px; margin:0 auto; padding:22px 16px 40px;}
+  .side-link:hover{color:#fff; background:rgba(255,255,255,.07);}
+  .side-link.active{background:var(--accent); color:#fff;}
+  .side-section-label{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    color:#9297A3; padding:16px 12px 6px;
+  }
+  .side-emp-item{margin-bottom:1px;}
+  .side-emp-toggle{
+    display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%;
+    background:transparent; border:none; color:#D9D6CF; padding:9px 12px;
+    border-radius:10px; font-size:13.5px; cursor:pointer; font-weight:600; text-align:left;
+  }
+  .side-emp-toggle:hover{color:#fff; background:rgba(255,255,255,.07);}
+  .side-emp-toggle.active{color:#fff; background:rgba(255,255,255,.11);}
+  .side-emp-toggle .nombre{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .side-emp-toggle .chevron{flex-shrink:0; font-size:11px; opacity:.7; transition:transform .15s;}
+  .side-emp-toggle.open .chevron{transform:rotate(90deg);}
+  .side-emp-sub{display:none; flex-direction:column; padding:2px 0 6px 14px;}
+  .side-emp-sub.open{display:flex;}
+  .side-emp-sub button{
+    background:transparent; border:none; color:#B7BCC7; padding:7px 12px;
+    border-radius:8px; font-size:13px; cursor:pointer; text-align:left;
+  }
+  .side-emp-sub button:hover{color:#fff; background:rgba(255,255,255,.07);}
+  .side-emp-sub button.active{color:var(--accent); background:rgba(255,255,255,.07); font-weight:700;}
+  .side-empty{padding:6px 12px 4px; font-size:12px; color:#9297A3;}
+  .menu-toggle{
+    display:none; position:fixed; top:12px; left:12px; z-index:70;
+    background:var(--ink); color:#fff; border:none; width:38px; height:38px;
+    border-radius:10px; font-size:17px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .sidebar-backdrop{display:none; position:fixed; inset:0; background:rgba(20,17,12,.5); z-index:55;}
+  .sidebar-backdrop.active{display:block;}
+  main{flex:1; min-width:0; max-width:1080px; margin:0 auto; padding:22px 16px 40px; width:100%;}
   .view{display:none;}
   .view.active{display:block;}
+
+  @media (max-width:860px){
+    .sidebar{
+      position:fixed; left:0; top:0; transform:translateX(-100%); transition:transform .2s ease;
+      box-shadow:0 0 30px rgba(0,0,0,.35);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .menu-toggle{display:flex; align-items:center; justify-content:center;}
+    main{padding-top:64px;}
+  }
 
   .row-between{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
   h1{font-size:22px; margin:0 0 4px;}
@@ -224,28 +263,50 @@
   .toast.show{opacity:1;}
 
   @media (max-width:520px){
-    header.topbar{padding:12px;}
-    header.topbar .brand span.txt{display:none;}
-    main{padding:16px 10px 40px;}
+    main{padding-left:10px; padding-right:10px; padding-bottom:40px;}
     .mov-row .mr-saldo{display:none;}
   }
+
+  /* Gráficos (sección General) */
+  .charts-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px;}
+  @media (max-width:760px){ .charts-grid{grid-template-columns:1fr;} }
+  .chart-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 10px;}
+  .chart-card h3{margin:0 0 2px; font-size:14.5px;}
+  .chart-card .chart-sub{font-size:12px; color:var(--ink-soft); margin:0 0 10px;}
+  .chart-card.chart-wide{grid-column:1 / -1;}
+  .chart-empty{padding:30px 10px; text-align:center; color:var(--ink-soft); font-size:13px;}
+  .chart-svg{width:100%; height:auto; display:block; overflow:visible;}
+  .chart-svg .grid-line{stroke:var(--line); stroke-width:1;}
+  .chart-svg .axis-label{fill:var(--ink-soft); font-size:10.5px;}
+  .chart-svg .value-label{fill:var(--ink); font-size:11px; font-weight:700;}
+  .chart-svg .value-label-inv{fill:#fff; font-size:11px; font-weight:700;}
+  .chart-svg .cat-label{fill:var(--ink); font-size:12px;}
+  .chart-svg .hit-target{fill:transparent; cursor:pointer;}
+  .chart-legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
+  .chart-legend .item{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft);}
+  .chart-legend .swatch{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand"><span class="dot"></span><span class="txt">FOV</span></div>
-  <nav class="tabs">
-    <button id="tab-home" class="active" onclick="showTab('home')">Emprendimientos</button>
-    <button id="tab-caja" onclick="showTab('caja')">Caja</button>
-    <button id="tab-ajustes" onclick="showTab('ajustes')">Ajustes</button>
-  </nav>
-</header>
+<button id="btn-menu-toggle" class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menú">☰</button>
+<div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+<div class="app-shell">
+<aside id="sidebar" class="sidebar">
+  <div class="sidebar-brand"><span class="dot"></span><span>FOV</span></div>
+  <button id="side-general" class="side-link" onclick="navGeneral()">📊 General</button>
+  <button id="side-emprendimientos" class="side-link" onclick="navEmprendimientosOverview()">🏗️ Emprendimientos</button>
+  <div class="side-section-label">Tus obras</div>
+  <div id="side-emp-list"></div>
+  <div class="side-section-label">&nbsp;</div>
+  <button id="side-ajustes" class="side-link" onclick="navAjustes()">⚙️ Ajustes</button>
+</aside>
 
 <main>
 
   <!-- HOME -->
-  <section id="view-home" class="view active">
+  <section id="view-home" class="view">
     <div class="row-between">
       <div>
         <h1>Emprendimientos</h1>
@@ -340,17 +401,19 @@
     </div>
   </section>
 
-  <!-- CAJA -->
-  <section id="view-caja" class="view">
+  <!-- GENERAL -->
+  <section id="view-general" class="view active">
     <div class="row-between">
       <div>
-        <h1>Caja</h1>
-        <p class="sub">Ingresos y egresos de la constructora, como un extracto de cuenta.</p>
+        <h1>General</h1>
+        <p class="sub">Estado de cuenta general: ingresos y egresos de toda la constructora.</p>
       </div>
       <button class="btn primary" onclick="openNuevoMov()">+ Nuevo movimiento</button>
     </div>
 
     <div id="caja-saldos" class="saldo-cards"></div>
+
+    <div id="charts-general" class="charts-grid"></div>
 
     <div class="moneda-toggle" id="moneda-toggle">
       <button id="mt-ars" class="active" onclick="setCajaMoneda('ARS')">Pesos (ARS)</button>
@@ -417,6 +480,7 @@
   </section>
 
 </main>
+</div>
 
 <!-- Modal nuevo/editar emprendimiento -->
 <div class="modal-bg" id="modal-emp">
@@ -546,6 +610,11 @@ let editingMovId = null;
 let movTipoActual = 'egreso';
 let movComprobanteActual = null; // {mimeType, data} o null
 let movContextEmpId = null; // si se abrió desde "Caja de esta obra", fuerza ese emprendimiento
+let sidebarExpandedEmpId = null; // qué emprendimiento está desplegado en el menú lateral
+
+// Paleta categórica fija para gráficos (orden fijo, no se reordena)
+const CHART_CATS = ['#2a78d6','#1baf7a','#eda100','#e87ba4','#4a3aa7'];
+const CHART_GRAY = '#898781';
 
 // ---------- utilidades ----------
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -623,23 +692,21 @@ function iniciarAutoSync(){
 // ---------- navegación ----------
 function showTab(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
   if(name==='home'){
     document.getElementById('view-home').classList.add('active');
-    document.getElementById('tab-home').classList.add('active');
     currentEmpId = null;
     renderHome();
-  }else if(name==='caja'){
-    document.getElementById('view-caja').classList.add('active');
-    document.getElementById('tab-caja').classList.add('active');
+  }else if(name==='general'){
+    document.getElementById('view-general').classList.add('active');
     currentEmpId = null;
     renderCaja();
   }else if(name==='ajustes'){
     document.getElementById('view-ajustes').classList.add('active');
-    document.getElementById('tab-ajustes').classList.add('active');
   }else if(name==='detail'){
     document.getElementById('view-detail').classList.add('active');
   }
+  updateSidebarActive();
+  closeSidebar();
 }
 function showSubtab(name){
   document.querySelectorAll('.subview').forEach(v=>v.classList.remove('active'));
@@ -648,6 +715,86 @@ function showSubtab(name){
   document.getElementById('subtab-'+name).classList.add('active');
   if(name==='renders') renderRenderSrcOptions();
   if(name==='cajaobra') renderCajaObra();
+  updateSidebarActive();
+}
+
+// ---------- sidebar ----------
+function navGeneral(){ showTab('general'); }
+function navAjustes(){ showTab('ajustes'); }
+function navEmprendimientosOverview(){ showTab('home'); }
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-backdrop').classList.toggle('active');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('active');
+}
+
+function renderSidebarEmp(){
+  const cont = document.getElementById('side-emp-list');
+  const ids = Object.keys(state.emprendimientos).sort((a,b)=> (state.emprendimientos[b].creado||0)-(state.emprendimientos[a].creado||0));
+  if(!ids.length){
+    cont.innerHTML = '<div class="side-empty">Todavía no hay obras cargadas.</div>';
+    return;
+  }
+  cont.innerHTML = ids.map(id=>{
+    const e = state.emprendimientos[id];
+    const open = sidebarExpandedEmpId===id;
+    return `
+      <div class="side-emp-item">
+        <button class="side-emp-toggle${open?' open':''}" onclick="toggleEmpAccordion('${id}')">
+          <span class="nombre">${esc(e.nombre)}</span>
+          <span class="chevron">▶</span>
+        </button>
+        <div class="side-emp-sub${open?' open':''}">
+          <button onclick="abrirEmpSection('${id}','planos')">Planos</button>
+          <button onclick="abrirEmpSection('${id}','ideas')">Ideas</button>
+          <button onclick="abrirEmpSection('${id}','renders')">Renders realistas</button>
+          <button onclick="abrirEmpSection('${id}','cajaobra')">Caja de esta obra</button>
+        </div>
+      </div>`;
+  }).join('');
+  updateSidebarActive();
+}
+
+function toggleEmpAccordion(id){
+  sidebarExpandedEmpId = (sidebarExpandedEmpId===id) ? null : id;
+  renderSidebarEmp();
+}
+
+function abrirEmpSection(id, sub){
+  sidebarExpandedEmpId = id;
+  abrirEmp(id);
+  showSubtab(sub);
+  renderSidebarEmp();
+}
+
+function updateSidebarActive(){
+  document.querySelectorAll('.side-link').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.side-emp-toggle').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.side-emp-sub button').forEach(b=>b.classList.remove('active'));
+  const viewGeneral = document.getElementById('view-general');
+  const viewHome = document.getElementById('view-home');
+  const viewAjustes = document.getElementById('view-ajustes');
+  const viewDetail = document.getElementById('view-detail');
+  if(viewGeneral && viewGeneral.classList.contains('active')){
+    document.getElementById('side-general').classList.add('active');
+  }else if(viewAjustes && viewAjustes.classList.contains('active')){
+    document.getElementById('side-ajustes').classList.add('active');
+  }else if(viewDetail && viewDetail.classList.contains('active') && currentEmpId){
+    const toggle = document.querySelector(`.side-emp-toggle[onclick="toggleEmpAccordion('${currentEmpId}')"]`);
+    if(toggle) toggle.classList.add('active');
+    const activeSub = document.querySelector('nav.subtabs button.active');
+    if(activeSub){
+      const subName = activeSub.id.replace('subtab-','');
+      const subBtn = document.querySelector(`.side-emp-sub button[onclick="abrirEmpSection('${currentEmpId}','${subName}')"]`);
+      if(subBtn) subBtn.classList.add('active');
+    }
+  }else if(viewHome && viewHome.classList.contains('active')){
+    document.getElementById('side-emprendimientos').classList.add('active');
+  }
 }
 
 // ---------- HOME ----------
@@ -676,6 +823,7 @@ function renderHome(){
     </div>`;
   }).join('');
   actualizarSelectsEmp();
+  renderSidebarEmp();
 }
 
 function actualizarSelectsEmp(){
@@ -1168,6 +1316,266 @@ function renderCaja(){
   const contextoParaFila = (filtroEmp && filtroEmp!=='__general__') ? filtroEmp : undefined;
   const html = conSaldo.slice().reverse().map(x=>renderMovRow(x.id, x.saldo, contextoParaFila, true)).join('');
   document.getElementById('caja-list').innerHTML = html || '<div style="padding:24px;text-align:center;color:var(--ink-soft);font-size:13.5px;">No hay movimientos en esta moneda todavía.</div>';
+  renderChartsGeneral();
+}
+
+// ---------- gráficos (sección General) ----------
+function mesLabel(ym){
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const [y,m] = ym.split('-');
+  return meses[Number(m)-1] + ' ' + y.slice(2);
+}
+function fmtCompacto(n){
+  const abs = Math.abs(n);
+  let s;
+  if(abs>=1000000) s = (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  else if(abs>=1000) s = (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  else s = Math.round(n).toString();
+  return s;
+}
+function truncarTexto(s,n){
+  s = s || '';
+  return s.length > n ? s.slice(0,n-1) + '…' : s;
+}
+
+function computeSaldoTimeline(moneda){
+  let ids = Object.keys(state.movimientos).filter(id=> state.movimientos[id].moneda===moneda);
+  ids.sort(ordenCronologico);
+  if(!ids.length) return [];
+  let acum = 0;
+  const porMes = {};
+  ids.forEach(id=>{
+    const m = state.movimientos[id];
+    acum += signoParaContexto(m, undefined) * Number(m.monto||0);
+    porMes[m.fecha.slice(0,7)] = acum;
+  });
+  const meses = Object.keys(porMes).sort();
+  let [y,m] = meses[0].split('-').map(Number);
+  const [y1,m1] = meses[meses.length-1].split('-').map(Number);
+  const out = [];
+  let last = 0;
+  while(y<y1 || (y===y1 && m<=m1)){
+    const ym = `${y}-${String(m).padStart(2,'0')}`;
+    if(porMes[ym]!==undefined) last = porMes[ym];
+    out.push({ym, saldo:last});
+    m++; if(m>12){ m=1; y++; }
+  }
+  return out;
+}
+
+function computeIngresosEgresosPorMes(moneda){
+  const porMes = {};
+  Object.values(state.movimientos).forEach(m=>{
+    if(m.moneda!==moneda) return;
+    if(m.tipo!=='ingreso' && m.tipo!=='egreso') return;
+    const ym = m.fecha.slice(0,7);
+    if(!porMes[ym]) porMes[ym] = {ingreso:0, egreso:0};
+    porMes[ym][m.tipo] += Number(m.monto||0);
+  });
+  const meses = Object.keys(porMes).sort().slice(-8);
+  return meses.map(ym=>({ym, ingreso:porMes[ym].ingreso, egreso:porMes[ym].egreso}));
+}
+
+function computeGastosPorCategoria(moneda){
+  const porCat = {};
+  Object.values(state.movimientos).forEach(m=>{
+    if(m.moneda!==moneda || m.tipo!=='egreso') return;
+    const cat = m.categoria || 'Sin categoría';
+    porCat[cat] = (porCat[cat]||0) + Number(m.monto||0);
+  });
+  let arr = Object.keys(porCat).map(cat=>({cat, monto:porCat[cat]})).sort((a,b)=>b.monto-a.monto);
+  if(arr.length > 5){
+    const top = arr.slice(0,5);
+    const restoMonto = arr.slice(5).reduce((s,x)=>s+x.monto,0);
+    top.push({cat:'Otros', monto:restoMonto});
+    arr = top;
+  }
+  return arr;
+}
+
+function computeSaldoPorEmprendimiento(moneda){
+  return Object.keys(state.emprendimientos).map(id=>({
+    id, nombre: state.emprendimientos[id].nombre,
+    saldo: calcularSaldos(id)[moneda]
+  }));
+}
+
+function renderChartsGeneral(){
+  const cont = document.getElementById('charts-general');
+  if(!cont.dataset.built){
+    cont.innerHTML = `
+      <div class="chart-card chart-wide">
+        <h3>Evolución del saldo en el tiempo</h3>
+        <p class="chart-sub">Saldo acumulado de la constructora, mes a mes.</p>
+        <div id="chart-saldo-timeline"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Ingresos vs egresos por mes</h3>
+        <p class="chart-sub">Comparación mensual, últimos meses.</p>
+        <div id="chart-ingresos-egresos"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Gastos por categoría</h3>
+        <p class="chart-sub">Egresos acumulados por categoría.</p>
+        <div id="chart-gastos-categoria"></div>
+      </div>
+      <div class="chart-card chart-wide">
+        <h3>Saldo por emprendimiento</h3>
+        <p class="chart-sub">Saldo actual de cada obra.</p>
+        <div id="chart-saldo-emprendimiento"></div>
+      </div>`;
+    cont.dataset.built = '1';
+  }
+  renderChartSaldoTimeline();
+  renderChartIngresosEgresos();
+  renderChartGastosCategoria();
+  renderChartSaldoEmprendimiento();
+}
+
+function renderChartSaldoTimeline(){
+  const el = document.getElementById('chart-saldo-timeline');
+  const data = computeSaldoTimeline(cajaMoneda);
+  if(data.length < 2){
+    el.innerHTML = '<div class="chart-empty">Todavía no hay suficientes movimientos para mostrar la evolución.</div>';
+    return;
+  }
+  const W=760, H=220, padL=54, padR=16, padT=16, padB=28;
+  const vals = data.map(d=>d.saldo);
+  let min = Math.min(0, ...vals), max = Math.max(0, ...vals);
+  if(min===max){ min-=1; max+=1; }
+  const x = i => padL + (i/(data.length-1)) * (W-padL-padR);
+  const y = v => padT + (1 - (v-min)/(max-min)) * (H-padT-padB);
+  let gridSvg = '';
+  for(let i=0;i<=4;i++){
+    const v = min + (max-min)*i/4;
+    const yy = y(v);
+    gridSvg += `<line class="grid-line" x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}"/>`;
+    gridSvg += `<text class="axis-label" x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end">${fmtCompacto(v)}</text>`;
+  }
+  const pathD = data.map((d,i)=> (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(d.saldo).toFixed(1)).join(' ');
+  const last = data[data.length-1];
+  const color = last.saldo >= 0 ? 'var(--ok)' : 'var(--danger)';
+  const labelEvery = Math.max(1, Math.ceil(data.length/6));
+  let xLabels = '';
+  data.forEach((d,i)=>{
+    if(i%labelEvery===0 || i===data.length-1){
+      xLabels += `<text class="axis-label" x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${mesLabel(d.ym)}</text>`;
+    }
+  });
+  const lastX = x(data.length-1), lastY = y(last.saldo);
+  el.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">
+    ${gridSvg}
+    <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="${color}" stroke="var(--panel)" stroke-width="2"><title>${mesLabel(last.ym)}: ${fmtMonto(last.saldo, cajaMoneda)}</title></circle>
+    <text class="value-label" x="${lastX.toFixed(1)}" y="${Math.max(12,lastY-10).toFixed(1)}" text-anchor="end">${fmtMonto(last.saldo, cajaMoneda)}</text>
+    ${xLabels}
+  </svg>`;
+}
+
+function renderChartIngresosEgresos(){
+  const el = document.getElementById('chart-ingresos-egresos');
+  const data = computeIngresosEgresosPorMes(cajaMoneda);
+  if(!data.length){
+    el.innerHTML = '<div class="chart-empty">No hay ingresos ni egresos registrados todavía.</div>';
+    return;
+  }
+  const W=460, H=220, padL=50, padR=14, padT=16, padB=30;
+  const max = Math.max(1, ...data.flatMap(d=>[d.ingreso, d.egreso]));
+  const n = data.length;
+  const groupW = (W-padL-padR)/n;
+  const barW = Math.min(22, groupW*0.32);
+  const y = v => padT + (1 - v/max) * (H-padT-padB);
+  const baseY = y(0);
+  let gridSvg = '';
+  for(let i=0;i<=4;i++){
+    const v = max*i/4;
+    const yy = y(v);
+    gridSvg += `<line class="grid-line" x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}"/>`;
+    gridSvg += `<text class="axis-label" x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end">${fmtCompacto(v)}</text>`;
+  }
+  let bars = '';
+  data.forEach((d,i)=>{
+    const cx = padL + groupW*(i+0.5);
+    const xi = cx - barW - 2;
+    const xe = cx + 2;
+    const hi = baseY - y(d.ingreso);
+    const he = baseY - y(d.egreso);
+    bars += `<rect style="cursor:pointer" x="${xi.toFixed(1)}" y="${y(d.ingreso).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0,hi).toFixed(1)}" rx="4" fill="var(--ok)"><title>${mesLabel(d.ym)} · Ingresos: ${fmtMonto(d.ingreso, cajaMoneda)}</title></rect>`;
+    bars += `<rect style="cursor:pointer" x="${xe.toFixed(1)}" y="${y(d.egreso).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0,he).toFixed(1)}" rx="4" fill="var(--danger)"><title>${mesLabel(d.ym)} · Egresos: ${fmtMonto(d.egreso, cajaMoneda)}</title></rect>`;
+    bars += `<text class="axis-label" x="${cx.toFixed(1)}" y="${H-8}" text-anchor="middle">${mesLabel(d.ym)}</text>`;
+  });
+  el.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">
+    ${gridSvg}
+    <line x1="${padL}" y1="${baseY.toFixed(1)}" x2="${W-padR}" y2="${baseY.toFixed(1)}" style="stroke:var(--line);stroke-width:1.5;"/>
+    ${bars}
+  </svg>
+  <div class="chart-legend">
+    <span class="item"><span class="swatch" style="background:var(--ok)"></span>Ingresos</span>
+    <span class="item"><span class="swatch" style="background:var(--danger)"></span>Egresos</span>
+  </div>`;
+}
+
+function renderChartGastosCategoria(){
+  const el = document.getElementById('chart-gastos-categoria');
+  const data = computeGastosPorCategoria(cajaMoneda);
+  if(!data.length){
+    el.innerHTML = '<div class="chart-empty">Todavía no hay egresos registrados.</div>';
+    return;
+  }
+  const W=460, rowH=32, padL=112, padR=56, padT=8, padB=8;
+  const H = padT + padB + data.length*rowH;
+  const max = Math.max(...data.map(d=>d.monto), 1);
+  const barMaxW = W - padL - padR;
+  let rows = '';
+  data.forEach((d,i)=>{
+    const yy = padT + i*rowH;
+    const w = Math.max(2, (d.monto/max) * barMaxW);
+    const color = d.cat==='Otros' ? CHART_GRAY : CHART_CATS[i % CHART_CATS.length];
+    rows += `<text class="cat-label" x="${padL-8}" y="${(yy+rowH/2+4).toFixed(1)}" text-anchor="end">${esc(truncarTexto(d.cat,16))}</text>`;
+    rows += `<rect style="cursor:pointer" x="${padL}" y="${(yy+6).toFixed(1)}" width="${w.toFixed(1)}" height="20" rx="4" fill="${color}"><title>${esc(d.cat)}: ${fmtMonto(d.monto, cajaMoneda)}</title></rect>`;
+    rows += `<text class="value-label" x="${(padL+w+8).toFixed(1)}" y="${(yy+rowH/2+4).toFixed(1)}">${fmtCompacto(d.monto)}</text>`;
+  });
+  el.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">${rows}</svg>`;
+}
+
+function renderChartSaldoEmprendimiento(){
+  const el = document.getElementById('chart-saldo-emprendimiento');
+  const data = computeSaldoPorEmprendimiento(cajaMoneda);
+  if(!data.length){
+    el.innerHTML = '<div class="chart-empty">Todavía no hay emprendimientos cargados.</div>';
+    return;
+  }
+  const W=760, H=240, padL=54, padR=16, padT=16, padB=46;
+  const max = Math.max(...data.map(d=>Math.abs(d.saldo)), 1);
+  const y = v => padT + (1 - (v+max)/(2*max)) * (H-padT-padB);
+  const baseY = y(0);
+  const n = data.length;
+  const groupW = (W-padL-padR)/n;
+  const barW = Math.min(40, groupW*0.55);
+  let gridSvg = '';
+  for(let i=0;i<=4;i++){
+    const v = -max + (2*max)*i/4;
+    const yy = y(v);
+    gridSvg += `<line class="grid-line" x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}"/>`;
+    gridSvg += `<text class="axis-label" x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end">${fmtCompacto(v)}</text>`;
+  }
+  let bars = '';
+  data.forEach((d,i)=>{
+    const cx = padL + groupW*(i+0.5);
+    const positivo = d.saldo >= 0;
+    const color = positivo ? 'var(--ok)' : 'var(--danger)';
+    const yTop = positivo ? y(d.saldo) : baseY;
+    const h = Math.abs(y(d.saldo) - baseY);
+    bars += `<rect style="cursor:pointer" x="${(cx-barW/2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0,h).toFixed(1)}" rx="4" fill="${color}"><title>${esc(d.nombre)}: ${fmtMonto(d.saldo, cajaMoneda)}</title></rect>`;
+    const labelY = positivo ? yTop - 6 : yTop + h + 14;
+    bars += `<text class="value-label" x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle">${fmtCompacto(d.saldo)}</text>`;
+    bars += `<text class="axis-label" x="${cx.toFixed(1)}" y="${H-10}" text-anchor="middle">${esc(truncarTexto(d.nombre,10))}</text>`;
+  });
+  el.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}">
+    ${gridSvg}
+    <line x1="${padL}" y1="${baseY.toFixed(1)}" x2="${W-padR}" y2="${baseY.toFixed(1)}" style="stroke:var(--line);stroke-width:1.5;"/>
+    ${bars}
+  </svg>`;
 }
 
 function renderCajaObra(){
@@ -1387,11 +1795,12 @@ async function restaurarBackup(ev){
 }
 
 // ---------- init ----------
-document.getElementById('tab-ajustes').addEventListener('click', cargarFormAjustes);
+document.getElementById('side-ajustes').addEventListener('click', cargarFormAjustes);
 window.addEventListener('DOMContentLoaded', ()=>{
   cargarFormAjustes();
   cargarDatos(false);
   iniciarAutoSync();
+  updateSidebarActive();
 });
 </script>
 </body>
