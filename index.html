@@ -89,6 +89,27 @@
   main{flex:1; min-width:0; max-width:1080px; margin:0 auto; padding:22px 16px 40px; width:100%;}
   .view{display:none;}
   .view.active{display:block;}
+  .login-screen{
+    position:fixed; inset:0; z-index:500; background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding:24px;
+  }
+  .login-screen.hidden{display:none;}
+  .login-screen .login-brand{
+    font-size:clamp(34px, 9vw, 60px); font-weight:800; line-height:1; letter-spacing:.2em; padding-left:.2em; color:var(--ink);
+  }
+  .login-box{
+    width:100%; max-width:340px; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; display:flex; flex-direction:column; gap:6px;
+  }
+  .login-box label{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-top:8px;}
+  .login-box input{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-size:15px;
+    font-family:inherit; background:#fff; color:var(--ink);
+  }
+  .login-box input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .login-box .login-error{min-height:18px; margin-top:8px; font-size:13px; color:var(--danger); font-weight:600;}
+  .login-box button{margin-top:6px; width:100%; padding:12px;}
+  .login-checking{font-size:14px; color:var(--ink-soft);}
   .brand-header{
     display:flex; align-items:center; justify-content:center; gap:18px;
     padding:8px 0 22px; margin-bottom:22px; border-bottom:1px solid var(--line);
@@ -327,6 +348,20 @@
 </head>
 <body>
 
+<!-- ACCESO: la app no carga datos hasta iniciar sesión -->
+<div id="login-screen" class="login-screen">
+  <div class="login-brand">SANTVAL</div>
+  <div id="login-checking" class="login-checking">Verificando sesión...</div>
+  <form id="login-form" class="login-box" style="display:none;" onsubmit="authSubmit(event)">
+    <label for="login-email">Correo</label>
+    <input type="email" id="login-email" autocomplete="username" required>
+    <label for="login-pass">Contraseña</label>
+    <input type="password" id="login-pass" autocomplete="current-password" required>
+    <div id="login-error" class="login-error" role="alert"></div>
+    <button id="login-btn" type="submit" class="btn primary">Ingresar</button>
+  </form>
+</div>
+
 <button id="btn-menu-toggle" class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menú">☰</button>
 <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
 
@@ -339,6 +374,7 @@
   <div id="side-emp-list"></div>
   <div class="side-section-label">&nbsp;</div>
   <button id="side-ajustes" class="side-link" onclick="navAjustes()">⚙️ Ajustes</button>
+  <button id="side-logout" class="side-link" onclick="authLogout()">🔒 Cerrar sesión</button>
 </aside>
 
 <main>
@@ -648,7 +684,7 @@
    propia del usuario.
 ------------------------------------------------------------------ */
 
-const DEFAULT_DB_URL = "https://app-delta-b0a47-default-rtdb.firebaseio.com";
+const DEFAULT_DB_URL = "https://santval-2026-default-rtdb.firebaseio.com";
 const ROOT = "fov";
 
 let cfg = {
@@ -705,19 +741,127 @@ function estadoLabel(e){ return {planificacion:'Planificación', construccion:'E
 // ---------- Firebase (REST, sin SDK) ----------
 function fbUrl(path){ return `${cfg.dbUrl.replace(/\/$/,'')}/${ROOT}/${path}.json`; }
 
-async function fbGetAll(){
-  const r = await fetch(fbUrl(''), {cache:'no-store'});
+// ---------- Acceso (Firebase Authentication, REST) ----------
+// La "Web API key" de Firebase NO es un secreto (identifica el proyecto);
+// lo que protege los datos son las reglas de la base + el inicio de sesión.
+const FIREBASE_WEB_API_KEY = "AIzaSyCxmiJw1N-kpuOBZ34_p21kZGA0i25HmS8";
+const AUTH_STORE = 'santval_auth';
+let auth = { idToken:null, refreshToken:null, exp:0, email:'' };
+
+const AUTH_ERRORES = {
+  EMAIL_NOT_FOUND:'Correo o contraseña incorrectos.',
+  INVALID_PASSWORD:'Correo o contraseña incorrectos.',
+  INVALID_LOGIN_CREDENTIALS:'Correo o contraseña incorrectos.',
+  INVALID_EMAIL:'El correo no es válido.',
+  USER_DISABLED:'Este usuario está deshabilitado.',
+  TOO_MANY_ATTEMPTS_TRY_LATER:'Demasiados intentos. Esperá unos minutos y probá de nuevo.',
+  OPERATION_NOT_ALLOWED:'El acceso con correo y contraseña no está activado en Firebase.',
+};
+
+function authGuardar(){
+  try{ localStorage.setItem(AUTH_STORE, JSON.stringify({refreshToken:auth.refreshToken, email:auth.email})); }catch(e){}
+}
+function authAplicar(idToken, refreshToken, expiresIn, email){
+  auth.idToken = idToken;
+  auth.refreshToken = refreshToken;
+  auth.exp = Date.now() + (Number(expiresIn)||3600)*1000;
+  if(email) auth.email = email;
+  authGuardar();
+}
+async function authSignIn(email, password){
+  if(!FIREBASE_WEB_API_KEY) throw new Error('Falta configurar la clave web de Firebase en el código.');
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+encodeURIComponent(FIREBASE_WEB_API_KEY), {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email, password, returnSecureToken:true})
+  });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok){
+    const code = ((d.error && d.error.message) || '').split(' ')[0];
+    throw new Error(AUTH_ERRORES[code] || 'No se pudo iniciar sesión ('+(code||('HTTP '+r.status))+').');
+  }
+  authAplicar(d.idToken, d.refreshToken, d.expiresIn, d.email || email);
+}
+async function authRefresh(){
+  if(!auth.refreshToken) throw new Error('sin sesión');
+  const r = await fetch('https://securetoken.googleapis.com/v1/token?key='+encodeURIComponent(FIREBASE_WEB_API_KEY), {
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: 'grant_type=refresh_token&refresh_token='+encodeURIComponent(auth.refreshToken)
+  });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error('sesión vencida');
+  authAplicar(d.id_token, d.refresh_token, d.expires_in);
+}
+async function authToken(){
+  if(!auth.idToken || Date.now() > auth.exp - 60000){
+    try{ await authRefresh(); }
+    catch(e){ authMostrarLogin('Tu sesión venció. Volvé a ingresar.'); throw e; }
+  }
+  return auth.idToken;
+}
+function authMostrarLogin(msg){
+  if(syncTimer){ clearInterval(syncTimer); syncTimer = null; }
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-checking').style.display = 'none';
+  document.getElementById('login-form').style.display = '';
+  document.getElementById('login-error').textContent = msg || '';
+  const email = document.getElementById('login-email');
+  if(auth.email && !email.value) email.value = auth.email;
+  (email.value ? document.getElementById('login-pass') : email).focus();
+}
+function authOcultarLogin(){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('login-pass').value = '';
+}
+async function authSubmit(ev){
+  ev.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.textContent = ''; btn.disabled = true; btn.textContent = 'Ingresando...';
+  try{
+    await authSignIn(document.getElementById('login-email').value.trim(), document.getElementById('login-pass').value);
+    authOcultarLogin();
+    arrancarApp();
+  }catch(e){
+    err.textContent = e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+}
+function authLogout(){
+  try{ localStorage.removeItem(AUTH_STORE); }catch(e){}
+  location.reload();
+}
+async function authInit(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(AUTH_STORE) || 'null'); }catch(e){}
+  if(saved && saved.refreshToken){
+    auth.refreshToken = saved.refreshToken; auth.email = saved.email || '';
+    try{ await authRefresh(); authOcultarLogin(); arrancarApp(); return; }catch(e){}
+  }
+  authMostrarLogin('');
+}
+
+// Toda lectura/escritura a la base lleva el token de la sesión (?auth=)
+async function fbFetch(path, init){
+  const url = t => fbUrl(path) + '?auth=' + encodeURIComponent(t);
+  let r = await fetch(url(await authToken()), init);
+  if(r.status === 401){ // token rechazado: renovar una vez y reintentar
+    try{ await authRefresh(); }catch(e){ authMostrarLogin('Tu sesión venció. Volvé a ingresar.'); throw new Error('HTTP 401'); }
+    r = await fetch(url(auth.idToken), init);
+  }
   if(!r.ok) throw new Error('HTTP '+r.status);
+  return r;
+}
+async function fbGetAll(){
+  const r = await fbFetch('', {cache:'no-store'});
   const data = await r.json();
   return data || {};
 }
 async function fbSet(path, value){
-  const r = await fetch(fbUrl(path), {method:'PUT', body: JSON.stringify(value)});
-  if(!r.ok) throw new Error('HTTP '+r.status);
+  await fbFetch(path, {method:'PUT', body: JSON.stringify(value)});
 }
 async function fbDelete(path){
-  const r = await fetch(fbUrl(path), {method:'DELETE'});
-  if(!r.ok) throw new Error('HTTP '+r.status);
+  await fbFetch(path, {method:'DELETE'});
 }
 
 function setSyncStatus(kind, text){
@@ -1991,11 +2135,14 @@ async function restaurarBackup(ev){
 
 // ---------- init ----------
 document.getElementById('side-ajustes').addEventListener('click', cargarFormAjustes);
-window.addEventListener('DOMContentLoaded', ()=>{
-  cargarFormAjustes();
+function arrancarApp(){
   cargarDatos(false);
   iniciarAutoSync();
   updateSidebarActive();
+}
+window.addEventListener('DOMContentLoaded', ()=>{
+  cargarFormAjustes();
+  authInit(); // los datos se cargan recién con la sesión iniciada
 });
 </script>
 </body>
