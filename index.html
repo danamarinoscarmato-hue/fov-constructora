@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>FOV · Gestión de Emprendimientos</title>
+<style>
+  :root{
+    --bg:#F5F3EF;
+    --panel:#FFFFFF;
+    --ink:#22262B;
+    --ink-soft:#5B6169;
+    --line:#E4E0D8;
+    --accent:#C4691F;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#F4E3D2;
+    --ok:#2F7D4F;
+    --ok-soft:#E1F0E6;
+    --warn:#B8860B;
+    --warn-soft:#FBF0DA;
+    --sold:#7A5FB5;
+    --sold-soft:#EDE7F8;
+    --danger:#B3382C;
+    --danger-soft:#F7E3E0;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(30,25,15,.06), 0 6px 18px rgba(30,25,15,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header.topbar{
+    position:sticky; top:0; z-index:50;
+    background:var(--ink);
+    color:#fff;
+    padding:14px 18px;
+    display:flex; align-items:center; justify-content:space-between;
+    box-shadow:var(--shadow);
+    flex-wrap:wrap; gap:8px;
+  }
+  header.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:.2px;}
+  header.topbar .brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent);}
+  nav.tabs{display:flex; gap:4px;}
+  nav.tabs button{
+    background:transparent; border:none; color:#D9D6CF; padding:8px 14px;
+    border-radius:10px; font-size:14px; cursor:pointer; font-weight:600;
+  }
+  nav.tabs button.active{background:rgba(255,255,255,.12); color:#fff;}
+  nav.tabs button:hover{color:#fff;}
+  main{max-width:1080px; margin:0 auto; padding:22px 16px 40px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .row-between{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  h1{font-size:22px; margin:0 0 4px;}
+  h2{font-size:19px; margin:0;}
+  p.sub{color:var(--ink-soft); margin:0 0 18px; font-size:14px;}
+
+  button.btn{
+    background:var(--ink); color:#fff; border:none; padding:10px 16px;
+    border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  button.btn:hover{opacity:.92;}
+  button.btn.primary{background:var(--accent);}
+  button.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line);}
+  button.btn.danger{background:var(--danger);}
+  button.btn.small{padding:7px 12px; font-size:13px; border-radius:8px;}
+  button.btn:disabled{opacity:.5; cursor:not-allowed;}
+  button.icon-btn{
+    background:var(--panel); border:1px solid var(--line); width:32px; height:32px;
+    border-radius:8px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  }
+
+  .grid-emp{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin-top:16px;}
+  .card-emp{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); cursor:pointer; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .card-emp:hover{border-color:var(--accent);}
+  .card-emp .thumb{width:100%; height:130px; background:var(--accent-soft) center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:34px;}
+  .card-emp .body{padding:12px 14px 14px;}
+  .card-emp .nombre{font-weight:700; font-size:15px; margin-bottom:2px;}
+  .card-emp .dir{color:var(--ink-soft); font-size:13px; margin-bottom:8px;}
+  .badge{display:inline-block; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.2px;}
+  .badge.planificacion{background:var(--warn-soft); color:var(--warn);}
+  .badge.construccion{background:var(--accent-soft); color:var(--accent);}
+  .badge.venta{background:var(--ok-soft); color:var(--ok);}
+  .badge.vendido{background:var(--sold-soft); color:var(--sold);}
+
+  .empty-state{text-align:center; padding:50px 20px; color:var(--ink-soft);}
+  .empty-state .big{font-size:38px; margin-bottom:6px;}
+
+  .detail-header{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-bottom:16px;}
+  .detail-header .top{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;}
+  .back-link{background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:13px; padding:0 0 10px; display:inline-flex; align-items:center; gap:4px;}
+  .back-link:hover{color:var(--ink);}
+  .meta-line{color:var(--ink-soft); font-size:13.5px; margin-top:4px;}
+  .desc-text{margin-top:10px; font-size:14px; line-height:1.5; color:var(--ink);}
+
+  nav.subtabs{display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  nav.subtabs button{
+    background:none; border:none; padding:9px 4px; margin-right:14px; font-size:14px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  nav.subtabs button.active{color:var(--accent); border-color:var(--accent);}
+
+  .subview{display:none;}
+  .subview.active{display:block;}
+
+  .grid-planos{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .plano-card{background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); position:relative;}
+  .plano-card img{width:100%; height:110px; object-fit:cover; display:block; cursor:pointer; background:#EFEBE3;}
+  .plano-card .pdf-thumb{width:100%; height:110px; display:flex; align-items:center; justify-content:center; background:#EFEBE3; font-size:30px; color:var(--ink-soft); cursor:pointer;}
+  .plano-card .cap{padding:8px 9px; font-size:12.5px; display:flex; justify-content:space-between; align-items:center; gap:4px;}
+  .plano-card .cap span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .plano-card .del{background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:13px; flex-shrink:0;}
+  .plano-card .del:hover{color:var(--danger);}
+
+  .upload-box{
+    border:2px dashed var(--line); border-radius:12px; padding:22px; text-align:center; color:var(--ink-soft);
+    cursor:pointer; margin-bottom:16px; font-size:13.5px; background:var(--panel);
+  }
+  .upload-box:hover{border-color:var(--accent); color:var(--accent);}
+
+  .idea-item{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow);}
+  .idea-item .idea-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .idea-item .fecha{font-size:11.5px; color:var(--ink-soft);}
+  .idea-item .texto{font-size:14px; line-height:1.5; white-space:pre-wrap; margin-top:4px;}
+  .idea-item .acts{display:flex; gap:8px; flex-shrink:0;}
+  .idea-item .acts button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:12.5px;}
+  .idea-item .acts button:hover{color:var(--accent);}
+
+  textarea, input[type=text], input[type=password], input[type=number], input[type=date], select{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:14px;
+    font-family:inherit; background:#fff; color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  label.field-label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin:12px 0 5px; text-transform:uppercase; letter-spacing:.3px;}
+  label.field-label:first-child{margin-top:0;}
+  .field-row{display:flex; gap:10px;}
+  .field-row > div{flex:1;}
+
+  .render-panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;}
+  .render-src{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;}
+  .render-src .opt{width:78px; text-align:center; cursor:pointer;}
+  .render-src .opt img{width:78px; height:60px; object-fit:cover; border-radius:8px; border:2px solid transparent; display:block;}
+  .render-src .opt.sel img{border-color:var(--accent);}
+  .render-src .opt span{font-size:10.5px; color:var(--ink-soft); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .render-result{margin-top:18px; text-align:center;}
+  .render-result img{max-width:100%; border-radius:12px; box-shadow:var(--shadow);}
+  .render-loading{padding:30px; text-align:center; color:var(--ink-soft); font-size:14px;}
+  .grid-renders{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-top:18px;}
+  .render-card{border-radius:12px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow); background:var(--panel);}
+  .render-card img{width:100%; height:120px; object-fit:cover; cursor:pointer; display:block;}
+  .render-card .cap{padding:7px 9px; font-size:11.5px; color:var(--ink-soft); display:flex; justify-content:space-between; gap:4px;}
+  .render-card .cap button{background:none;border:none;color:var(--ink-soft);cursor:pointer; flex-shrink:0;}
+  .render-card .cap button:hover{color:var(--danger);}
+
+  .ajustes-box{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; max-width:560px; margin-bottom:16px;}
+  .ajustes-box h3{margin:0 0 4px; font-size:15px;}
+  .ajustes-box .hint{font-size:12.5px; color:var(--ink-soft); margin:4px 0 0;}
+  .ajustes-box a{color:var(--accent);}
+  .sync-status{font-size:12.5px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%; background:var(--ok);}
+  .sync-dot.err{background:var(--danger);}
+  .sync-dot.busy{background:var(--warn);}
+
+  /* Caja */
+  .saldo-cards{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .saldo-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 20px; flex:1; min-width:180px;}
+  .saldo-card .lbl{font-size:12px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
+  .saldo-card .val{font-size:26px; font-weight:700; margin-top:4px;}
+  .saldo-card .val.neg{color:var(--danger);}
+  .saldo-card .val.pos{color:var(--ok);}
+  .moneda-toggle{display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px; width:fit-content; margin-bottom:14px;}
+  .moneda-toggle button{background:none; border:none; padding:7px 16px; border-radius:8px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--ink-soft);}
+  .moneda-toggle button.active{background:var(--ink); color:#fff;}
+  .caja-filtros{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center;}
+  .caja-filtros select{width:auto; min-width:170px;}
+  .mov-list{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  .mov-row{display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .mov-row:last-child{border-bottom:none;}
+  .mov-row:hover{background:#FAF8F4;}
+  .mov-row .mr-fecha{font-size:12px; color:var(--ink-soft); width:74px; flex-shrink:0;}
+  .mov-row .mr-info{flex:1; min-width:0;}
+  .mov-row .mr-desc{font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .mov-row .mr-tags{font-size:11.5px; color:var(--ink-soft); margin-top:2px; display:flex; gap:6px; flex-wrap:wrap;}
+  .mov-row .mr-tag{background:var(--accent-soft); color:var(--accent); padding:1px 7px; border-radius:999px;}
+  .mov-row .mr-monto{font-size:14.5px; font-weight:700; text-align:right; width:110px; flex-shrink:0;}
+  .mov-row .mr-monto.ingreso{color:var(--ok);}
+  .mov-row .mr-monto.egreso{color:var(--danger);}
+  .mov-row .mr-saldo{font-size:11.5px; color:var(--ink-soft); text-align:right; width:100px; flex-shrink:0;}
+  .mov-row .mr-comp{width:20px; flex-shrink:0; text-align:center; color:var(--ink-soft);}
+  .tipo-toggle{display:flex; gap:8px; flex-wrap:wrap;}
+  .tipo-toggle button{flex:1; min-width:110px; border:1px solid var(--line); background:#fff; padding:10px; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; color:var(--ink-soft);}
+  .tipo-toggle button.ingreso.active{background:var(--ok-soft); color:var(--ok); border-color:var(--ok);}
+  .tipo-toggle button.egreso.active{background:var(--danger-soft); color:var(--danger); border-color:var(--danger);}
+  .tipo-toggle button.prestamo.active{background:var(--sold-soft); color:var(--sold); border-color:var(--sold);}
+  .mov-row .mr-monto.prestamo{color:var(--sold);}
+
+  .modal-bg{
+    display:none; position:fixed; inset:0; background:rgba(20,17,12,.5); z-index:200;
+    align-items:center; justify-content:center; padding:16px;
+  }
+  .modal-bg.active{display:flex;}
+  .modal{background:#fff; border-radius:16px; padding:20px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .modal h3{margin:0 0 14px;}
+  .modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap;}
+  .lightbox-bg{display:none; position:fixed; inset:0; background:rgba(10,8,5,.88); z-index:300; align-items:center; justify-content:center; padding:20px;}
+  .lightbox-bg.active{display:flex;}
+  .lightbox-bg img{max-width:100%; max-height:92vh; border-radius:8px;}
+  .lightbox-close{position:absolute; top:18px; right:20px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer;}
+
+  .toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:10px 18px; border-radius:10px; font-size:13.5px; z-index:400; opacity:0; pointer-events:none;
+    transition:opacity .25s;
+  }
+  .toast.show{opacity:1;}
+
+  @media (max-width:520px){
+    header.topbar{padding:12px;}
+    header.topbar .brand span.txt{display:none;}
+    main{padding:16px 10px 40px;}
+    .mov-row .mr-saldo{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span><span class="txt">FOV</span></div>
+  <nav class="tabs">
+    <button id="tab-home" class="active" onclick="showTab('home')">Emprendimientos</button>
+    <button id="tab-caja" onclick="showTab('caja')">Caja</button>
+    <button id="tab-ajustes" onclick="showTab('ajustes')">Ajustes</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- HOME -->
+  <section id="view-home" class="view active">
+    <div class="row-between">
+      <div>
+        <h1>Emprendimientos</h1>
+        <p class="sub">Carpetas de cada desarrollo: planos, ideas y renders.</p>
+      </div>
+      <button class="btn primary" onclick="openNuevoEmp()">+ Nuevo emprendimiento</button>
+    </div>
+    <div id="grid-emp" class="grid-emp"></div>
+    <div id="empty-home" class="empty-state" style="display:none;">
+      <div class="big">🏗️</div>
+      <div>Todavía no hay emprendimientos cargados.</div>
+    </div>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="view-detail" class="view">
+    <button class="back-link" onclick="showTab('home')">&larr; Volver a emprendimientos</button>
+    <div class="detail-header">
+      <div class="top">
+        <div>
+          <h2 id="det-nombre">—</h2>
+          <div class="meta-line" id="det-dir"></div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span id="det-badge" class="badge"></span>
+          <button class="icon-btn" title="Editar" onclick="openEditarEmp()">✎</button>
+          <button class="icon-btn" title="Eliminar" onclick="confirmEliminarEmp()">🗑</button>
+        </div>
+      </div>
+      <div id="det-desc" class="desc-text"></div>
+    </div>
+
+    <nav class="subtabs">
+      <button id="subtab-planos" class="active" onclick="showSubtab('planos')">Planos</button>
+      <button id="subtab-ideas" onclick="showSubtab('ideas')">Ideas</button>
+      <button id="subtab-renders" onclick="showSubtab('renders')">Renders realistas</button>
+      <button id="subtab-cajaobra" onclick="showSubtab('cajaobra')">Caja de esta obra</button>
+    </nav>
+
+    <div id="sub-planos" class="subview active">
+      <div class="upload-box" onclick="document.getElementById('input-plano').click()">
+        📐 Tocá para subir planos (imágenes o PDF) — se pueden elegir varios a la vez
+      </div>
+      <input type="file" id="input-plano" accept="image/*,application/pdf" multiple style="display:none" onchange="handlePlanoUpload(event)">
+      <div id="grid-planos" class="grid-planos"></div>
+    </div>
+
+    <div id="sub-ideas" class="subview">
+      <textarea id="idea-input" placeholder="Anotá una idea, referencia o detalle a desarrollar para este emprendimiento..."></textarea>
+      <div style="margin-top:8px; text-align:right;">
+        <button class="btn primary small" onclick="agregarIdea()">Agregar idea</button>
+      </div>
+      <div id="lista-ideas" style="margin-top:16px;"></div>
+    </div>
+
+    <div id="sub-renders" class="subview">
+      <div class="render-panel">
+        <label class="field-label">1. Elegí la imagen de referencia (un plano ya subido, o subí otra)</label>
+        <div id="render-src-list" class="render-src"></div>
+        <button class="btn ghost small" style="margin-top:8px;" onclick="document.getElementById('input-render-ref').click()">+ Subir otra imagen</button>
+        <input type="file" id="input-render-ref" accept="image/*" style="display:none" onchange="handleRenderRefUpload(event)">
+
+        <label class="field-label">2. Describí el resultado que querés</label>
+        <textarea id="render-prompt">Genera una imagen fotorrealista en 3D de este plano arquitectónico, con iluminación natural de día, acabados modernos y de calidad, ideal para material de venta inmobiliaria.</textarea>
+
+        <div style="margin-top:12px;">
+          <button class="btn primary" id="btn-generar-render" onclick="generarRender()">✨ Generar render</button>
+        </div>
+
+        <div id="render-loading" class="render-loading" style="display:none;">Generando la imagen, puede tardar unos segundos...</div>
+        <div id="render-result" class="render-result" style="display:none;">
+          <img id="render-result-img" src="">
+          <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
+            <button class="btn primary small" onclick="guardarRenderActual()">Guardar en la galería</button>
+            <button class="btn ghost small" onclick="descartarRenderActual()">Descartar</button>
+          </div>
+        </div>
+        <div id="render-error" style="display:none; color:var(--danger); font-size:13.5px; margin-top:12px;"></div>
+      </div>
+
+      <h3 style="margin:20px 0 4px; font-size:15px;">Galería de renders guardados</h3>
+      <div id="grid-renders" class="grid-renders"></div>
+    </div>
+
+    <div id="sub-cajaobra" class="subview">
+      <div id="cajaobra-saldos" class="saldo-cards"></div>
+      <div class="row-between" style="margin-bottom:10px;">
+        <span class="hint" style="color:var(--ink-soft); font-size:13px;">Movimientos vinculados a este emprendimiento.</span>
+        <button class="btn primary small" onclick="openNuevoMov(currentEmpId)">+ Nuevo movimiento</button>
+      </div>
+      <div id="cajaobra-list" class="mov-list"></div>
+    </div>
+  </section>
+
+  <!-- CAJA -->
+  <section id="view-caja" class="view">
+    <div class="row-between">
+      <div>
+        <h1>Caja</h1>
+        <p class="sub">Ingresos y egresos de la constructora, como un extracto de cuenta.</p>
+      </div>
+      <button class="btn primary" onclick="openNuevoMov()">+ Nuevo movimiento</button>
+    </div>
+
+    <div id="caja-saldos" class="saldo-cards"></div>
+
+    <div class="moneda-toggle" id="moneda-toggle">
+      <button id="mt-ars" class="active" onclick="setCajaMoneda('ARS')">Pesos (ARS)</button>
+      <button id="mt-usd" onclick="setCajaMoneda('USD')">Dólares (USD)</button>
+    </div>
+
+    <div class="caja-filtros">
+      <select id="caja-filtro-emp" onchange="renderCaja()">
+        <option value="">Todos los emprendimientos</option>
+        <option value="__general__">Solo caja general (sin obra)</option>
+      </select>
+      <select id="caja-filtro-tipo" onchange="renderCaja()">
+        <option value="">Todos los movimientos</option>
+        <option value="ingreso">Solo ingresos</option>
+        <option value="egreso">Solo egresos</option>
+        <option value="prestamo">Solo préstamos entre obras</option>
+      </select>
+    </div>
+
+    <div id="caja-list" class="mov-list"></div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-ajustes" class="view">
+    <h1>Ajustes</h1>
+    <p class="sub">Configuración de sincronización y generación de imágenes.</p>
+
+    <div class="ajustes-box">
+      <h3>Sincronización (Firebase)</h3>
+      <label class="field-label">URL de la Realtime Database</label>
+      <input type="text" id="cfg-db-url" placeholder="https://tu-proyecto-default-rtdb.firebaseio.com">
+      <div class="sync-status" style="margin-top:10px;"><span id="sync-dot" class="sync-dot"></span><span id="sync-text">—</span></div>
+      <p class="hint">Los datos (emprendimientos, planos, ideas, renders y movimientos de caja) se guardan acá para que vos y tu jefe vean lo mismo desde cualquier dispositivo.</p>
+      <div style="margin-top:10px;"><button class="btn small ghost" onclick="guardarConfigFirebase()">Guardar</button></div>
+    </div>
+
+    <div class="ajustes-box">
+      <h3>Generación de renders (Gemini API)</h3>
+      <label class="field-label">API Key de Gemini</label>
+      <input type="password" id="cfg-api-key" placeholder="Pegá acá tu API key">
+      <label class="field-label">Modelo</label>
+      <select id="cfg-model">
+        <option value="gemini-3.1-flash-image">Nano Banana 2 — rápido y económico (recomendado)</option>
+        <option value="gemini-3-pro-image">Nano Banana Pro — mejor calidad, más lento y caro</option>
+        <option value="gemini-3.1-flash-lite-image">Nano Banana 2 Lite — el más económico</option>
+      </select>
+      <p class="hint">
+        La API key se guarda solo en este dispositivo/navegador (no se sincroniza), para no compartirla por accidente.
+        La conseguís gratis en <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>.
+        Cada imagen generada tiene un costo pequeño (aprox. entre USD 0,02 y 0,15 según el modelo y la resolución) que se cobra en tu cuenta de Google AI — necesita facturación habilitada para generar imágenes.
+      </p>
+      <div style="margin-top:10px;"><button class="btn small ghost" onclick="guardarConfigGemini()">Guardar</button></div>
+    </div>
+
+    <div class="ajustes-box">
+      <h3>Copia de seguridad</h3>
+      <p class="hint">Descargá todos los datos (sin la API key) como respaldo, o restaurá desde un archivo.</p>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button class="btn small ghost" onclick="descargarBackup()">Descargar backup</button>
+        <button class="btn small ghost" onclick="document.getElementById('input-restore').click()">Restaurar backup</button>
+        <input type="file" id="input-restore" accept="application/json" style="display:none" onchange="restaurarBackup(event)">
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Modal nuevo/editar emprendimiento -->
+<div class="modal-bg" id="modal-emp">
+  <div class="modal">
+    <h3 id="modal-emp-title">Nuevo emprendimiento</h3>
+    <label class="field-label">Nombre</label>
+    <input type="text" id="emp-nombre" placeholder="Ej: Edificio Los Alerces">
+    <label class="field-label">Dirección / zona</label>
+    <input type="text" id="emp-dir" placeholder="Ej: Av. Siempreviva 742">
+    <label class="field-label">Estado</label>
+    <select id="emp-estado">
+      <option value="planificacion">Planificación</option>
+      <option value="construccion">En construcción</option>
+      <option value="venta">En venta</option>
+      <option value="vendido">Vendido</option>
+    </select>
+    <label class="field-label">Descripción / notas generales</label>
+    <textarea id="emp-desc" placeholder="Detalles del terreno, superficie, características..."></textarea>
+    <div class="actions">
+      <button class="btn ghost" onclick="cerrarModalEmp()">Cancelar</button>
+      <button class="btn primary" id="btn-guardar-emp" onclick="guardarEmp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuevo/editar movimiento -->
+<div class="modal-bg" id="modal-mov">
+  <div class="modal">
+    <h3 id="modal-mov-title">Nuevo movimiento</h3>
+    <div class="tipo-toggle">
+      <button type="button" id="mov-tipo-ingreso" class="ingreso" onclick="setMovTipo('ingreso')">↑ Ingreso</button>
+      <button type="button" id="mov-tipo-egreso" class="egreso" onclick="setMovTipo('egreso')">↓ Egreso</button>
+      <button type="button" id="mov-tipo-prestamo" class="prestamo" onclick="setMovTipo('prestamo')">⇄ Préstamo entre obras</button>
+    </div>
+    <div class="field-row">
+      <div>
+        <label class="field-label">Fecha</label>
+        <input type="date" id="mov-fecha">
+      </div>
+      <div>
+        <label class="field-label">Moneda</label>
+        <select id="mov-moneda">
+          <option value="ARS">Pesos (ARS)</option>
+          <option value="USD">Dólares (USD)</option>
+        </select>
+      </div>
+    </div>
+    <label class="field-label">Monto</label>
+    <input type="number" id="mov-monto" placeholder="0" step="0.01" min="0">
+
+    <div id="mov-block-normal">
+      <label class="field-label">Categoría</label>
+      <select id="mov-categoria">
+        <option>Materiales</option>
+        <option>Mano de obra</option>
+        <option>Honorarios profesionales</option>
+        <option>Impuestos y tasas</option>
+        <option>Servicios</option>
+        <option>Venta de unidad</option>
+        <option>Anticipo de cliente</option>
+        <option>Otro</option>
+      </select>
+      <label class="field-label">Emprendimiento (opcional)</label>
+      <select id="mov-emp">
+        <option value="">General (sin obra)</option>
+      </select>
+    </div>
+
+    <div id="mov-block-prestamo" style="display:none;">
+      <label class="field-label">De (quién presta)</label>
+      <select id="mov-emp-origen"></select>
+      <label class="field-label">A (quién recibe)</label>
+      <select id="mov-emp-destino"></select>
+      <p class="hint" style="color:var(--ink-soft); margin-top:6px;">Queda asentado como una salida de dinero en el emprendimiento que presta, y como una entrada en el que recibe.</p>
+    </div>
+
+    <label class="field-label">Descripción</label>
+    <input type="text" id="mov-desc" placeholder="Ej: Compra de cemento y arena">
+    <label class="field-label">Comprobante (opcional)</label>
+    <div id="mov-comp-preview" style="display:none; margin-bottom:8px;"></div>
+    <input type="file" id="mov-comp-input" accept="image/*,application/pdf" onchange="handleMovComprobante(event)">
+    <div class="actions">
+      <button class="btn ghost" id="btn-borrar-mov" style="display:none;" onclick="confirmEliminarMov()">Eliminar</button>
+      <button class="btn ghost" onclick="cerrarModalMov()">Cancelar</button>
+      <button class="btn primary" id="btn-guardar-mov" onclick="guardarMov()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-bg" id="lightbox">
+  <button class="lightbox-close" onclick="cerrarLightbox()">×</button>
+  <img id="lightbox-img" src="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   FOV — Gestión de Emprendimientos + Caja
+   App de una sola página. Datos en Firebase Realtime Database
+   (bajo el nodo "fov" para no chocar con otras apps del mismo
+   proyecto Firebase). Imágenes/comprobantes guardados como base64
+   comprimido. Renders generados con la Gemini API (Google AI
+   Studio), llamada directa desde el navegador con la API key
+   propia del usuario.
+------------------------------------------------------------------ */
+
+const DEFAULT_DB_URL = "https://app-delta-b0a47-default-rtdb.firebaseio.com";
+const ROOT = "fov";
+
+let cfg = {
+  dbUrl: localStorage.getItem('fov_db_url') || DEFAULT_DB_URL,
+  apiKey: localStorage.getItem('fov_api_key') || "",
+  model: localStorage.getItem('fov_model') || "gemini-3.1-flash-image",
+};
+
+let state = { emprendimientos: {}, movimientos: {} };
+let currentEmpId = null;
+let editingEmpId = null;
+let currentRenderSrc = null; // {mimeType, data} base64 sin prefijo
+let currentRenderResult = null;
+let syncTimer = null;
+
+let cajaMoneda = 'ARS';
+let editingMovId = null;
+let movTipoActual = 'egreso';
+let movComprobanteActual = null; // {mimeType, data} o null
+let movContextEmpId = null; // si se abrió desde "Caja de esta obra", fuerza ese emprendimiento
+
+// ---------- utilidades ----------
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function esc(s){ return (s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fechaCorta(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+}
+function fechaDiaMes(fechaStr){
+  const [y,m,d] = fechaStr.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+function hoyISO(){
+  const d = new Date();
+  const tz = d.getTimezoneOffset();
+  return new Date(d.getTime() - tz*60000).toISOString().slice(0,10);
+}
+function fmtMonto(n, moneda){
+  const val = Number(n||0).toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return (moneda==='USD' ? 'US$ ' : '$ ') + val;
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._h); toast._h = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function estadoLabel(e){ return {planificacion:'Planificación', construccion:'En construcción', venta:'En venta', vendido:'Vendido'}[e] || e; }
+
+// ---------- Firebase (REST, sin SDK) ----------
+function fbUrl(path){ return `${cfg.dbUrl.replace(/\/$/,'')}/${ROOT}/${path}.json`; }
+
+async function fbGetAll(){
+  const r = await fetch(fbUrl(''), {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const data = await r.json();
+  return data || {};
+}
+async function fbSet(path, value){
+  const r = await fetch(fbUrl(path), {method:'PUT', body: JSON.stringify(value)});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+}
+async function fbDelete(path){
+  const r = await fetch(fbUrl(path), {method:'DELETE'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+}
+
+function setSyncStatus(kind, text){
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot' + (kind==='err' ? ' err' : kind==='busy' ? ' busy' : '');
+  txt.textContent = text;
+}
+
+async function cargarDatos(silencioso){
+  if(!silencioso) setSyncStatus('busy', 'Sincronizando...');
+  try{
+    const data = await fbGetAll();
+    state.emprendimientos = data.emprendimientos || {};
+    state.movimientos = data.movimientos || {};
+    setSyncStatus('ok', 'Sincronizado');
+    renderHome();
+    renderCaja();
+    if(currentEmpId) renderDetail();
+  }catch(err){
+    setSyncStatus('err', 'Sin conexión con Firebase');
+    if(!silencioso) toast('No se pudo sincronizar. Revisá la URL de Firebase en Ajustes.');
+  }
+}
+
+function iniciarAutoSync(){
+  if(syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(()=>cargarDatos(true), 40000);
+}
+
+// ---------- navegación ----------
+function showTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  if(name==='home'){
+    document.getElementById('view-home').classList.add('active');
+    document.getElementById('tab-home').classList.add('active');
+    currentEmpId = null;
+    renderHome();
+  }else if(name==='caja'){
+    document.getElementById('view-caja').classList.add('active');
+    document.getElementById('tab-caja').classList.add('active');
+    currentEmpId = null;
+    renderCaja();
+  }else if(name==='ajustes'){
+    document.getElementById('view-ajustes').classList.add('active');
+    document.getElementById('tab-ajustes').classList.add('active');
+  }else if(name==='detail'){
+    document.getElementById('view-detail').classList.add('active');
+  }
+}
+function showSubtab(name){
+  document.querySelectorAll('.subview').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('nav.subtabs button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sub-'+name).classList.add('active');
+  document.getElementById('subtab-'+name).classList.add('active');
+  if(name==='renders') renderRenderSrcOptions();
+  if(name==='cajaobra') renderCajaObra();
+}
+
+// ---------- HOME ----------
+function renderHome(){
+  const grid = document.getElementById('grid-emp');
+  const ids = Object.keys(state.emprendimientos).sort((a,b)=> (state.emprendimientos[b].creado||0)-(state.emprendimientos[a].creado||0));
+  document.getElementById('empty-home').style.display = ids.length ? 'none' : '';
+  grid.innerHTML = ids.map(id=>{
+    const e = state.emprendimientos[id];
+    const planos = e.planos || {};
+    const renders = e.renders || {};
+    const renderIds = Object.keys(renders);
+    const planoIds = Object.keys(planos).filter(pid=> (planos[pid].mimeType||'').startsWith('image/'));
+    let img = null;
+    if(renderIds.length){ img = renders[renderIds[renderIds.length-1]]; }
+    else if(planoIds.length){ img = planos[planoIds[0]]; }
+    const thumbHtml = img ? '' : '🏗️';
+    const thumbStyle = img ? `style="background-image:url('data:${img.mimeType};base64,${img.data}')"` : '';
+    return `<div class="card-emp" onclick="abrirEmp('${id}')">
+      <div class="thumb" ${thumbStyle}>${thumbHtml}</div>
+      <div class="body">
+        <div class="nombre">${esc(e.nombre)}</div>
+        <div class="dir">${esc(e.direccion||'')}</div>
+        <span class="badge ${e.estado}">${estadoLabel(e.estado)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  actualizarSelectsEmp();
+}
+
+function actualizarSelectsEmp(){
+  const ids = Object.keys(state.emprendimientos).sort((a,b)=> (state.emprendimientos[a].nombre||'').localeCompare(state.emprendimientos[b].nombre||''));
+  const opciones = ids.map(id=>`<option value="${id}">${esc(state.emprendimientos[id].nombre)}</option>`).join('');
+
+  const selFiltro = document.getElementById('caja-filtro-emp');
+  const valFiltro = selFiltro.value;
+  selFiltro.innerHTML = `<option value="">Todos los emprendimientos</option><option value="__general__">Solo caja general (sin obra)</option>` + opciones;
+  if([...selFiltro.options].some(o=>o.value===valFiltro)) selFiltro.value = valFiltro;
+
+  const selMov = document.getElementById('mov-emp');
+  selMov.innerHTML = `<option value="">General (sin obra)</option>` + opciones;
+
+  const selOrigen = document.getElementById('mov-emp-origen');
+  const selDestino = document.getElementById('mov-emp-destino');
+  const valOrigen = selOrigen.value, valDestino = selDestino.value;
+  selOrigen.innerHTML = opciones || '<option value="">Creá al menos dos emprendimientos primero</option>';
+  selDestino.innerHTML = opciones || '<option value="">Creá al menos dos emprendimientos primero</option>';
+  if(ids.includes(valOrigen)) selOrigen.value = valOrigen;
+  if(ids.includes(valDestino)) selDestino.value = valDestino;
+}
+
+function openNuevoEmp(){
+  editingEmpId = null;
+  document.getElementById('modal-emp-title').textContent = 'Nuevo emprendimiento';
+  document.getElementById('emp-nombre').value = '';
+  document.getElementById('emp-dir').value = '';
+  document.getElementById('emp-estado').value = 'planificacion';
+  document.getElementById('emp-desc').value = '';
+  document.getElementById('modal-emp').classList.add('active');
+}
+function openEditarEmp(){
+  const e = state.emprendimientos[currentEmpId];
+  editingEmpId = currentEmpId;
+  document.getElementById('modal-emp-title').textContent = 'Editar emprendimiento';
+  document.getElementById('emp-nombre').value = e.nombre||'';
+  document.getElementById('emp-dir').value = e.direccion||'';
+  document.getElementById('emp-estado').value = e.estado||'planificacion';
+  document.getElementById('emp-desc').value = e.descripcion||'';
+  document.getElementById('modal-emp').classList.add('active');
+}
+function cerrarModalEmp(){ document.getElementById('modal-emp').classList.remove('active'); }
+
+async function guardarEmp(){
+  const nombre = document.getElementById('emp-nombre').value.trim();
+  if(!nombre){ toast('Poné un nombre para el emprendimiento.'); return; }
+  const btn = document.getElementById('btn-guardar-emp');
+  btn.disabled = true;
+  const datos = {
+    nombre,
+    direccion: document.getElementById('emp-dir').value.trim(),
+    estado: document.getElementById('emp-estado').value,
+    descripcion: document.getElementById('emp-desc').value.trim(),
+  };
+  try{
+    if(editingEmpId){
+      const prev = state.emprendimientos[editingEmpId];
+      const merged = {...prev, ...datos};
+      state.emprendimientos[editingEmpId] = merged;
+      await fbSet('emprendimientos/'+editingEmpId, merged);
+    }else{
+      const id = uid();
+      const nuevo = {...datos, creado: Date.now(), planos:{}, ideas:{}, renders:{}};
+      state.emprendimientos[id] = nuevo;
+      await fbSet('emprendimientos/'+id, nuevo);
+    }
+    cerrarModalEmp();
+    renderHome();
+    if(currentEmpId) renderDetail();
+    toast('Guardado.');
+  }catch(err){
+    toast('No se pudo guardar. Revisá la conexión.');
+  }
+  btn.disabled = false;
+}
+
+function confirmEliminarEmp(){
+  if(!confirm('¿Eliminar este emprendimiento y todo lo que tiene adentro (planos, ideas, renders)? Los movimientos de caja vinculados a esta obra van a quedar como "General". Esta acción no se puede deshacer.')) return;
+  eliminarEmp();
+}
+async function eliminarEmp(){
+  const id = currentEmpId;
+  delete state.emprendimientos[id];
+  try{ await fbDelete('emprendimientos/'+id); }catch(e){}
+  showTab('home');
+  toast('Emprendimiento eliminado.');
+}
+
+// ---------- DETAIL ----------
+function abrirEmp(id){
+  currentEmpId = id;
+  showTab('detail');
+  showSubtab('planos');
+  renderDetail();
+}
+function renderDetail(){
+  const e = state.emprendimientos[currentEmpId];
+  if(!e){ showTab('home'); return; }
+  document.getElementById('det-nombre').textContent = e.nombre;
+  document.getElementById('det-dir').textContent = e.direccion || '';
+  const badge = document.getElementById('det-badge');
+  badge.className = 'badge ' + e.estado;
+  badge.textContent = estadoLabel(e.estado);
+  document.getElementById('det-desc').textContent = e.descripcion || '';
+  renderPlanos();
+  renderIdeas();
+  renderRenders();
+  if(document.getElementById('subtab-cajaobra').classList.contains('active')) renderCajaObra();
+}
+
+// ---------- PLANOS ----------
+function renderPlanos(){
+  const e = state.emprendimientos[currentEmpId];
+  const planos = e.planos || {};
+  const grid = document.getElementById('grid-planos');
+  const ids = Object.keys(planos).sort((a,b)=>(planos[a].creado||0)-(planos[b].creado||0));
+  grid.innerHTML = ids.map(id=>{
+    const p = planos[id];
+    const esImg = (p.mimeType||'').startsWith('image/');
+    const cell = esImg
+      ? `<img src="data:${p.mimeType};base64,${p.data}" onclick="verImagen('data:${p.mimeType};base64,${p.data}')">`
+      : `<div class="pdf-thumb" onclick="verPdfData('${p.mimeType}','${p.data}')">📄</div>`;
+    return `<div class="plano-card">
+      ${cell}
+      <div class="cap"><span title="${esc(p.nombre)}">${esc(p.nombre)}</span><button class="del" onclick="eliminarPlano('${id}')">✕</button></div>
+    </div>`;
+  }).join('') || '<p class="hint" style="color:var(--ink-soft);">Todavía no subiste planos para este emprendimiento.</p>';
+}
+
+function verPdfData(mimeType, data){
+  const w = window.open();
+  w.document.write(`<iframe src="data:${mimeType};base64,${data}" style="width:100%;height:100vh;border:none;"></iframe>`);
+}
+
+function resizeImageFile(file, maxDim, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else{ w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({mimeType:'image/jpeg', data: dataUrl.split(',')[1]});
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve({mimeType:file.type||'application/pdf', data: reader.result.split(',')[1]});
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePlanoUpload(ev){
+  const files = Array.from(ev.target.files||[]);
+  ev.target.value = '';
+  if(!files.length) return;
+  const e = state.emprendimientos[currentEmpId];
+  if(!e.planos) e.planos = {};
+  for(const file of files){
+    try{
+      let payload;
+      if(file.type.startsWith('image/')){
+        payload = await resizeImageFile(file, 1500, 0.82);
+      }else{
+        if(file.size > 8*1024*1024){ toast(`"${file.name}" pesa demasiado (máx. 8MB).`); continue; }
+        payload = await fileToBase64(file);
+      }
+      const id = uid();
+      const registro = {nombre:file.name, mimeType:payload.mimeType, data:payload.data, creado:Date.now()};
+      e.planos[id] = registro;
+      await fbSet('emprendimientos/'+currentEmpId+'/planos/'+id, registro);
+    }catch(err){
+      toast('No se pudo procesar "'+file.name+'".');
+    }
+  }
+  renderPlanos();
+  renderHome();
+  toast('Planos subidos.');
+}
+
+async function eliminarPlano(id){
+  if(!confirm('¿Eliminar este plano?')) return;
+  const e = state.emprendimientos[currentEmpId];
+  delete e.planos[id];
+  try{ await fbDelete('emprendimientos/'+currentEmpId+'/planos/'+id); }catch(err){}
+  renderPlanos();
+  renderHome();
+}
+
+function verImagen(src){
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+function cerrarLightbox(){ document.getElementById('lightbox').classList.remove('active'); }
+
+// ---------- IDEAS ----------
+function renderIdeas(){
+  const e = state.emprendimientos[currentEmpId];
+  const ideas = e.ideas || {};
+  const ids = Object.keys(ideas).sort((a,b)=>(ideas[b].creado||0)-(ideas[a].creado||0));
+  document.getElementById('lista-ideas').innerHTML = ids.map(id=>{
+    const it = ideas[id];
+    return `<div class="idea-item">
+      <div class="idea-top">
+        <div>
+          <div class="fecha">${fechaCorta(it.creado)}</div>
+          <div class="texto">${esc(it.texto)}</div>
+        </div>
+        <div class="acts"><button onclick="eliminarIdea('${id}')">Eliminar</button></div>
+      </div>
+    </div>`;
+  }).join('') || '<p class="hint" style="color:var(--ink-soft);">Sin ideas todavía. Anotá lo que se te ocurra para este emprendimiento.</p>';
+}
+async function agregarIdea(){
+  const ta = document.getElementById('idea-input');
+  const texto = ta.value.trim();
+  if(!texto) return;
+  const e = state.emprendimientos[currentEmpId];
+  if(!e.ideas) e.ideas = {};
+  const id = uid();
+  const registro = {texto, creado: Date.now()};
+  e.ideas[id] = registro;
+  ta.value = '';
+  renderIdeas();
+  try{ await fbSet('emprendimientos/'+currentEmpId+'/ideas/'+id, registro); }
+  catch(err){ toast('No se pudo guardar la idea (revisá la conexión).'); }
+}
+async function eliminarIdea(id){
+  const e = state.emprendimientos[currentEmpId];
+  delete e.ideas[id];
+  renderIdeas();
+  try{ await fbDelete('emprendimientos/'+currentEmpId+'/ideas/'+id); }catch(err){}
+}
+
+// ---------- RENDERS ----------
+function renderRenderSrcOptions(){
+  const e = state.emprendimientos[currentEmpId];
+  const planos = e.planos || {};
+  const list = document.getElementById('render-src-list');
+  const imgIds = Object.keys(planos).filter(id=>(planos[id].mimeType||'').startsWith('image/'));
+  list.innerHTML = imgIds.map(id=>{
+    const p = planos[id];
+    return `<div class="opt" data-id="${id}" onclick="seleccionarRenderSrc('${id}')">
+      <img src="data:${p.mimeType};base64,${p.data}">
+      <span>${esc(p.nombre)}</span>
+    </div>`;
+  }).join('');
+  if(!imgIds.length){
+    list.innerHTML = '<p class="hint" style="color:var(--ink-soft);">No hay planos en imagen todavía. Subí uno abajo o en la pestaña Planos.</p>';
+  }
+}
+function seleccionarRenderSrc(id){
+  const e = state.emprendimientos[currentEmpId];
+  const p = e.planos[id];
+  currentRenderSrc = {mimeType:p.mimeType, data:p.data};
+  document.querySelectorAll('.render-src .opt').forEach(o=>o.classList.toggle('sel', o.dataset.id===id));
+}
+async function handleRenderRefUpload(ev){
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  const payload = await resizeImageFile(file, 1500, 0.85);
+  currentRenderSrc = payload;
+  document.querySelectorAll('.render-src .opt').forEach(o=>o.classList.remove('sel'));
+  toast('Imagen de referencia cargada.');
+}
+
+async function generarRender(){
+  if(!cfg.apiKey){ toast('Cargá tu API key de Gemini en Ajustes primero.'); showTab('ajustes'); return; }
+  if(!currentRenderSrc){ toast('Elegí o subí primero una imagen de referencia.'); return; }
+  const prompt = document.getElementById('render-prompt').value.trim();
+  if(!prompt){ toast('Escribí una descripción de lo que querés generar.'); return; }
+
+  document.getElementById('btn-generar-render').disabled = true;
+  document.getElementById('render-loading').style.display = '';
+  document.getElementById('render-result').style.display = 'none';
+  document.getElementById('render-error').style.display = 'none';
+
+  try{
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model}:generateContent?key=${cfg.apiKey}`;
+    const body = {
+      contents: [{
+        parts: [
+          {text: prompt},
+          {inline_data: {mime_type: currentRenderSrc.mimeType, data: currentRenderSrc.data}}
+        ]
+      }],
+      generationConfig: {responseModalities: ["TEXT","IMAGE"]}
+    };
+    const resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const json = await resp.json();
+    if(!resp.ok){
+      throw new Error(json?.error?.message || ('HTTP '+resp.status));
+    }
+    const parts = json?.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData || p.inline_data);
+    if(!imgPart){
+      throw new Error('El modelo no devolvió una imagen. Probá reformular el pedido.');
+    }
+    const inline = imgPart.inlineData || imgPart.inline_data;
+    currentRenderResult = {mimeType: inline.mimeType || inline.mime_type || 'image/png', data: inline.data, prompt};
+    document.getElementById('render-result-img').src = `data:${currentRenderResult.mimeType};base64,${currentRenderResult.data}`;
+    document.getElementById('render-result').style.display = '';
+  }catch(err){
+    document.getElementById('render-error').textContent = 'No se pudo generar la imagen: ' + err.message;
+    document.getElementById('render-error').style.display = '';
+  }
+  document.getElementById('render-loading').style.display = 'none';
+  document.getElementById('btn-generar-render').disabled = false;
+}
+
+async function guardarRenderActual(){
+  if(!currentRenderResult) return;
+  const e = state.emprendimientos[currentEmpId];
+  if(!e.renders) e.renders = {};
+  const id = uid();
+  const registro = {...currentRenderResult, creado: Date.now()};
+  e.renders[id] = registro;
+  try{ await fbSet('emprendimientos/'+currentEmpId+'/renders/'+id, registro); }
+  catch(err){ toast('No se pudo guardar en la galería (revisá la conexión).'); }
+  descartarRenderActual();
+  renderRenders();
+  renderHome();
+  toast('Render guardado.');
+}
+function descartarRenderActual(){
+  currentRenderResult = null;
+  document.getElementById('render-result').style.display = 'none';
+}
+function renderRenders(){
+  const e = state.emprendimientos[currentEmpId];
+  const renders = e.renders || {};
+  const ids = Object.keys(renders).sort((a,b)=>(renders[b].creado||0)-(renders[a].creado||0));
+  document.getElementById('grid-renders').innerHTML = ids.map(id=>{
+    const r = renders[id];
+    return `<div class="render-card">
+      <img src="data:${r.mimeType};base64,${r.data}" onclick="verImagen('data:${r.mimeType};base64,${r.data}')">
+      <div class="cap"><span>${fechaCorta(r.creado)}</span><button onclick="eliminarRender('${id}')">✕</button></div>
+    </div>`;
+  }).join('') || '<p class="hint" style="color:var(--ink-soft);">Todavía no guardaste ningún render.</p>';
+}
+async function eliminarRender(id){
+  if(!confirm('¿Eliminar este render?')) return;
+  const e = state.emprendimientos[currentEmpId];
+  delete e.renders[id];
+  try{ await fbDelete('emprendimientos/'+currentEmpId+'/renders/'+id); }catch(err){}
+  renderRenders();
+  renderHome();
+}
+
+// ---------- CAJA ----------
+function setCajaMoneda(m){
+  cajaMoneda = m;
+  document.getElementById('mt-ars').classList.toggle('active', m==='ARS');
+  document.getElementById('mt-usd').classList.toggle('active', m==='USD');
+  renderCaja();
+}
+
+function signoParaContexto(m, contextEmpId){
+  // Devuelve +1 / -1 / 0 según cómo afecta este movimiento al saldo del contexto dado.
+  // contextEmpId: null/undefined = caja general de la constructora (todos), '__general__' = sin obra, o un id de emprendimiento puntual.
+  if(m.tipo==='prestamo'){
+    if(!contextEmpId || contextEmpId==='__general__') return 0; // transferencia interna: no cambia el total de la constructora
+    if(m.empOrigenId===contextEmpId) return -1;
+    if(m.empDestinoId===contextEmpId) return 1;
+    return 0;
+  }
+  return m.tipo==='ingreso' ? 1 : -1;
+}
+function movPerteneceAContexto(m, contextEmpId){
+  if(m.tipo==='prestamo'){
+    if(contextEmpId===undefined) return true; // se listan en "todos", aunque no muevan el total
+    if(contextEmpId==='__general__') return false; // los préstamos siempre son entre dos obras puntuales
+    return m.empOrigenId===contextEmpId || m.empDestinoId===contextEmpId;
+  }
+  if(contextEmpId===undefined) return true;
+  if(contextEmpId==='__general__') return !m.empId;
+  return m.empId===contextEmpId;
+}
+
+function calcularSaldos(filtroEmpId){
+  // filtroEmpId: undefined = todos, '__general__' = sin obra, o un id de emprendimiento
+  const saldos = {ARS:0, USD:0};
+  Object.values(state.movimientos).forEach(m=>{
+    if(!movPerteneceAContexto(m, filtroEmpId)) return;
+    saldos[m.moneda] = (saldos[m.moneda]||0) + signoParaContexto(m, filtroEmpId)*Number(m.monto||0);
+  });
+  return saldos;
+}
+
+function renderSaldoCards(contenedorId, filtroEmpId){
+  const saldos = calcularSaldos(filtroEmpId);
+  document.getElementById(contenedorId).innerHTML = `
+    <div class="saldo-card">
+      <div class="lbl">Saldo en pesos</div>
+      <div class="val ${saldos.ARS<0?'neg':'pos'}">${fmtMonto(saldos.ARS,'ARS')}</div>
+    </div>
+    <div class="saldo-card">
+      <div class="lbl">Saldo en dólares</div>
+      <div class="val ${saldos.USD<0?'neg':'pos'}">${fmtMonto(saldos.USD,'USD')}</div>
+    </div>`;
+}
+
+function listaConSaldo(ids, contextEmpId){
+  // ids ordenados cronológicamente ascendente; devuelve [{id, saldo}] (saldo ya acumulado en ese punto)
+  let acum = 0;
+  return ids.map(id=>{
+    const m = state.movimientos[id];
+    acum += signoParaContexto(m, contextEmpId)*Number(m.monto||0);
+    return {id, saldo: acum};
+  });
+}
+
+function nombreEmp(id){
+  const e = state.emprendimientos[id];
+  return e ? e.nombre : '(eliminado)';
+}
+
+function renderMovRow(id, saldo, contextEmpId, mostrarEmpTag){
+  const m = state.movimientos[id];
+  let descTexto, tagExtra, montoTexto, claseMonto;
+  if(m.tipo==='prestamo'){
+    descTexto = m.descripcion ? m.descripcion : `Préstamo: ${esc(nombreEmp(m.empOrigenId))} → ${esc(nombreEmp(m.empDestinoId))}`;
+    tagExtra = `<span class="mr-tag">${esc(nombreEmp(m.empOrigenId))} → ${esc(nombreEmp(m.empDestinoId))}</span>`;
+    const signo = signoParaContexto(m, contextEmpId);
+    claseMonto = signo>0 ? 'ingreso' : signo<0 ? 'egreso' : 'prestamo';
+    const prefijo = signo>0 ? '+' : signo<0 ? '-' : '⇄';
+    montoTexto = `${prefijo} ${fmtMonto(m.monto, m.moneda)}`;
+  }else{
+    const emp = m.empId ? state.emprendimientos[m.empId] : null;
+    descTexto = m.descripcion || m.categoria || '';
+    tagExtra = [
+      `<span class="mr-tag">${esc(m.categoria||'')}</span>`,
+      mostrarEmpTag ? `<span class="mr-tag">${emp ? esc(emp.nombre) : 'General'}</span>` : ''
+    ].join('');
+    claseMonto = m.tipo;
+    montoTexto = `${m.tipo==='ingreso'?'+':'-'} ${fmtMonto(m.monto, m.moneda)}`;
+  }
+  const compIcon = m.comprobante ? '📎' : '';
+  const saldoTexto = signoParaContexto(m, contextEmpId)===0 && m.tipo==='prestamo' && !contextEmpId
+    ? '—' : fmtMonto(saldo, m.moneda);
+  return `<div class="mov-row" onclick="openEditarMov('${id}')">
+    <div class="mr-fecha">${fechaDiaMes(m.fecha)}</div>
+    <div class="mr-info">
+      <div class="mr-desc">${esc(descTexto)}</div>
+      <div class="mr-tags">${tagExtra}</div>
+    </div>
+    <div class="mr-comp">${compIcon}</div>
+    <div class="mr-monto ${claseMonto}">${montoTexto}</div>
+    <div class="mr-saldo">${saldoTexto}</div>
+  </div>`;
+}
+
+function ordenCronologico(a,b){
+  const ma=state.movimientos[a], mb=state.movimientos[b];
+  return (ma.fecha+String(ma.creado)).localeCompare(mb.fecha+String(mb.creado));
+}
+
+function renderCaja(){
+  renderSaldoCards('caja-saldos', undefined);
+  const filtroEmpRaw = document.getElementById('caja-filtro-emp').value;
+  const filtroEmp = filtroEmpRaw || undefined; // '' -> todos
+  const filtroTipo = document.getElementById('caja-filtro-tipo').value;
+
+  let ids = Object.keys(state.movimientos).filter(id=>{
+    const m = state.movimientos[id];
+    if(m.moneda !== cajaMoneda) return false;
+    if(!movPerteneceAContexto(m, filtroEmp)) return false;
+    if(filtroTipo && m.tipo!==filtroTipo) return false;
+    return true;
+  });
+  ids.sort(ordenCronologico);
+  const conSaldo = listaConSaldo(ids, filtroEmp);
+  const contextoParaFila = (filtroEmp && filtroEmp!=='__general__') ? filtroEmp : undefined;
+  const html = conSaldo.slice().reverse().map(x=>renderMovRow(x.id, x.saldo, contextoParaFila, true)).join('');
+  document.getElementById('caja-list').innerHTML = html || '<div style="padding:24px;text-align:center;color:var(--ink-soft);font-size:13.5px;">No hay movimientos en esta moneda todavía.</div>';
+}
+
+function renderCajaObra(){
+  if(!currentEmpId) return;
+  renderSaldoCards('cajaobra-saldos', currentEmpId);
+  let ids = Object.keys(state.movimientos).filter(id=>movPerteneceAContexto(state.movimientos[id], currentEmpId));
+  ids.sort(ordenCronologico);
+  // saldo acumulado separado por moneda dentro de esta obra
+  const acumPorMoneda = {ARS:0, USD:0};
+  const filas = ids.map(id=>{
+    const m = state.movimientos[id];
+    acumPorMoneda[m.moneda] += signoParaContexto(m, currentEmpId)*Number(m.monto||0);
+    return {id, saldo: acumPorMoneda[m.moneda]};
+  });
+  const html = filas.slice().reverse().map(x=>renderMovRow(x.id, x.saldo, currentEmpId, false)).join('');
+  document.getElementById('cajaobra-list').innerHTML = html || '<div style="padding:24px;text-align:center;color:var(--ink-soft);font-size:13.5px;">Todavía no hay movimientos vinculados a este emprendimiento.</div>';
+}
+
+function setMovTipo(t){
+  movTipoActual = t;
+  document.getElementById('mov-tipo-ingreso').classList.toggle('active', t==='ingreso');
+  document.getElementById('mov-tipo-egreso').classList.toggle('active', t==='egreso');
+  document.getElementById('mov-tipo-prestamo').classList.toggle('active', t==='prestamo');
+  document.getElementById('mov-block-normal').style.display = t==='prestamo' ? 'none' : '';
+  document.getElementById('mov-block-prestamo').style.display = t==='prestamo' ? '' : 'none';
+}
+
+function openNuevoMov(empIdForzado){
+  editingMovId = null;
+  movComprobanteActual = null;
+  movContextEmpId = empIdForzado || null;
+  setMovTipo('egreso');
+  document.getElementById('modal-mov-title').textContent = 'Nuevo movimiento';
+  document.getElementById('mov-fecha').value = hoyISO();
+  document.getElementById('mov-moneda').value = cajaMoneda;
+  document.getElementById('mov-monto').value = '';
+  document.getElementById('mov-categoria').value = 'Materiales';
+  document.getElementById('mov-desc').value = '';
+  document.getElementById('mov-emp').value = empIdForzado || '';
+  if(empIdForzado) document.getElementById('mov-emp-origen').value = empIdForzado;
+  document.getElementById('mov-comp-preview').style.display = 'none';
+  document.getElementById('mov-comp-input').value = '';
+  document.getElementById('btn-borrar-mov').style.display = 'none';
+  document.getElementById('modal-mov').classList.add('active');
+}
+
+function openEditarMov(id){
+  const m = state.movimientos[id];
+  editingMovId = id;
+  movComprobanteActual = m.comprobante || null;
+  setMovTipo(m.tipo);
+  document.getElementById('modal-mov-title').textContent = 'Editar movimiento';
+  document.getElementById('mov-fecha').value = m.fecha;
+  document.getElementById('mov-moneda').value = m.moneda;
+  document.getElementById('mov-monto').value = m.monto;
+  document.getElementById('mov-desc').value = m.descripcion || '';
+  if(m.tipo==='prestamo'){
+    document.getElementById('mov-emp-origen').value = m.empOrigenId || '';
+    document.getElementById('mov-emp-destino').value = m.empDestinoId || '';
+  }else{
+    document.getElementById('mov-categoria').value = m.categoria || 'Otro';
+    document.getElementById('mov-emp').value = m.empId || '';
+  }
+  const prev = document.getElementById('mov-comp-preview');
+  if(m.comprobante){
+    prev.style.display = '';
+    prev.innerHTML = (m.comprobante.mimeType||'').startsWith('image/')
+      ? `<img src="data:${m.comprobante.mimeType};base64,${m.comprobante.data}" style="max-width:100%;max-height:120px;border-radius:8px;cursor:pointer;" onclick="verImagen('data:${m.comprobante.mimeType};base64,${m.comprobante.data}')">`
+      : `<button class="btn ghost small" onclick="verPdfData('${m.comprobante.mimeType}','${m.comprobante.data}')">📄 Ver comprobante PDF</button>`;
+  }else{
+    prev.style.display = 'none';
+  }
+  document.getElementById('mov-comp-input').value = '';
+  document.getElementById('btn-borrar-mov').style.display = '';
+  document.getElementById('modal-mov').classList.add('active');
+}
+function cerrarModalMov(){ document.getElementById('modal-mov').classList.remove('active'); }
+
+async function handleMovComprobante(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  try{
+    let payload;
+    if(file.type.startsWith('image/')) payload = await resizeImageFile(file, 1400, 0.8);
+    else payload = await fileToBase64(file);
+    movComprobanteActual = payload;
+    const prev = document.getElementById('mov-comp-preview');
+    prev.style.display = '';
+    prev.innerHTML = payload.mimeType.startsWith('image/')
+      ? `<img src="data:${payload.mimeType};base64,${payload.data}" style="max-width:100%;max-height:120px;border-radius:8px;">`
+      : `<span class="hint">📄 ${esc(file.name)}</span>`;
+  }catch(err){
+    toast('No se pudo procesar el comprobante.');
+  }
+}
+
+async function guardarMov(){
+  const fecha = document.getElementById('mov-fecha').value;
+  const monto = parseFloat(document.getElementById('mov-monto').value);
+  if(!fecha){ toast('Elegí una fecha.'); return; }
+  if(!monto || monto<=0){ toast('Ingresá un monto válido.'); return; }
+
+  let datos;
+  if(movTipoActual==='prestamo'){
+    const empOrigenId = document.getElementById('mov-emp-origen').value;
+    const empDestinoId = document.getElementById('mov-emp-destino').value;
+    if(!empOrigenId || !empDestinoId){ toast('Elegí quién presta y quién recibe.'); return; }
+    if(empOrigenId===empDestinoId){ toast('Tienen que ser dos emprendimientos distintos.'); return; }
+    datos = {
+      tipo: 'prestamo',
+      fecha,
+      moneda: document.getElementById('mov-moneda').value,
+      monto,
+      categoria: 'Préstamo entre obras',
+      descripcion: document.getElementById('mov-desc').value.trim(),
+      empOrigenId, empDestinoId, empId: null,
+      comprobante: movComprobanteActual || null,
+    };
+  }else{
+    datos = {
+      tipo: movTipoActual,
+      fecha,
+      moneda: document.getElementById('mov-moneda').value,
+      monto,
+      categoria: document.getElementById('mov-categoria').value,
+      descripcion: document.getElementById('mov-desc').value.trim(),
+      empId: document.getElementById('mov-emp').value || null,
+      empOrigenId: null, empDestinoId: null,
+      comprobante: movComprobanteActual || null,
+    };
+  }
+  const btn = document.getElementById('btn-guardar-mov');
+  btn.disabled = true;
+  try{
+    if(editingMovId){
+      const prev = state.movimientos[editingMovId];
+      const merged = {...prev, ...datos};
+      state.movimientos[editingMovId] = merged;
+      await fbSet('movimientos/'+editingMovId, merged);
+    }else{
+      const id = uid();
+      const nuevo = {...datos, creado: Date.now()};
+      state.movimientos[id] = nuevo;
+      await fbSet('movimientos/'+id, nuevo);
+    }
+    cerrarModalMov();
+    renderCaja();
+    if(currentEmpId) renderCajaObra();
+    toast('Movimiento guardado.');
+  }catch(err){
+    toast('No se pudo guardar. Revisá la conexión.');
+  }
+  btn.disabled = false;
+}
+
+function confirmEliminarMov(){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  eliminarMov();
+}
+async function eliminarMov(){
+  const id = editingMovId;
+  delete state.movimientos[id];
+  cerrarModalMov();
+  try{ await fbDelete('movimientos/'+id); }catch(err){}
+  renderCaja();
+  if(currentEmpId) renderCajaObra();
+  toast('Movimiento eliminado.');
+}
+
+// ---------- AJUSTES ----------
+function cargarFormAjustes(){
+  document.getElementById('cfg-db-url').value = cfg.dbUrl;
+  document.getElementById('cfg-api-key').value = cfg.apiKey;
+  document.getElementById('cfg-model').value = cfg.model;
+}
+function guardarConfigFirebase(){
+  const url = document.getElementById('cfg-db-url').value.trim();
+  if(!url){ toast('Poné una URL válida.'); return; }
+  cfg.dbUrl = url;
+  localStorage.setItem('fov_db_url', url);
+  toast('Guardado. Sincronizando...');
+  cargarDatos(false);
+}
+function guardarConfigGemini(){
+  cfg.apiKey = document.getElementById('cfg-api-key').value.trim();
+  cfg.model = document.getElementById('cfg-model').value;
+  localStorage.setItem('fov_api_key', cfg.apiKey);
+  localStorage.setItem('fov_model', cfg.model);
+  toast('Guardado.');
+}
+
+function descargarBackup(){
+  const blob = new Blob([JSON.stringify({emprendimientos: state.emprendimientos, movimientos: state.movimientos}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fov-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+async function restaurarBackup(ev){
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  if(!confirm('Esto reemplaza todos los datos actuales por los del archivo. ¿Continuar?')) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    state.emprendimientos = data.emprendimientos || {};
+    state.movimientos = data.movimientos || {};
+    await fbSet('emprendimientos', state.emprendimientos);
+    await fbSet('movimientos', state.movimientos);
+    renderHome();
+    renderCaja();
+    toast('Backup restaurado.');
+  }catch(err){
+    toast('El archivo no es un backup válido.');
+  }
+}
+
+// ---------- init ----------
+document.getElementById('tab-ajustes').addEventListener('click', cargarFormAjustes);
+window.addEventListener('DOMContentLoaded', ()=>{
+  cargarFormAjustes();
+  cargarDatos(false);
+  iniciarAutoSync();
+});
+</script>
+</body>
+</html>
