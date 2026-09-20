@@ -687,8 +687,11 @@
 const DEFAULT_DB_URL = "https://santval-2026-default-rtdb.firebaseio.com";
 const ROOT = "fov";
 
+// La URL guardada en el navegador se ignora si es la del proyecto Firebase anterior
+// (app-delta-b0a47): el login ahora es del proyecto santval-2026 y esa base lo rechazaría.
+const savedDbUrl = localStorage.getItem('fov_db_url');
 let cfg = {
-  dbUrl: localStorage.getItem('fov_db_url') || DEFAULT_DB_URL,
+  dbUrl: (savedDbUrl && !savedDbUrl.includes('app-delta-b0a47')) ? savedDbUrl : DEFAULT_DB_URL,
   apiKey: localStorage.getItem('fov_api_key') || "",
   model: localStorage.getItem('fov_model') || "gemini-3.1-flash-image",
 };
@@ -882,8 +885,9 @@ async function cargarDatos(silencioso){
     renderCaja();
     if(currentEmpId) renderDetail();
   }catch(err){
-    setSyncStatus('err', 'Sin conexión con Firebase');
-    if(!silencioso) toast('No se pudo sincronizar. Revisá la URL de Firebase en Ajustes.');
+    const detalle = /HTTP 40[13]/.test(err.message) ? 'sin permiso: revisá las reglas de Firebase' : err.message;
+    setSyncStatus('err', 'Sin conexión con Firebase (' + detalle + ')');
+    if(!silencioso) toast('No se pudo sincronizar (' + detalle + ').');
   }
 }
 
@@ -2118,18 +2122,23 @@ async function restaurarBackup(ev){
   ev.target.value = '';
   if(!file) return;
   if(!confirm('Esto reemplaza todos los datos actuales por los del archivo. ¿Continuar?')) return;
+  let data;
   try{
-    const text = await file.text();
-    const data = JSON.parse(text);
+    data = JSON.parse(await file.text());
+  }catch(err){
+    toast('El archivo no es un backup válido.');
+    return;
+  }
+  try{
+    await fbSet('emprendimientos', data.emprendimientos || {});
+    await fbSet('movimientos', data.movimientos || {});
     state.emprendimientos = data.emprendimientos || {};
     state.movimientos = data.movimientos || {};
-    await fbSet('emprendimientos', state.emprendimientos);
-    await fbSet('movimientos', state.movimientos);
     renderHome();
     renderCaja();
     toast('Backup restaurado.');
   }catch(err){
-    toast('El archivo no es un backup válido.');
+    toast('No se pudo guardar en Firebase (' + err.message + '). No se cambió nada.');
   }
 }
 
