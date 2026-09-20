@@ -209,7 +209,7 @@
   .idea-item .acts button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:12.5px;}
   .idea-item .acts button:hover{color:var(--accent);}
 
-  textarea, input[type=text], input[type=password], input[type=number], input[type=date], select{
+  textarea, input[type=text], input[type=email], input[type=password], input[type=number], input[type=date], select{
     width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:14px;
     font-family:inherit; background:#fff; color:var(--ink);
   }
@@ -570,11 +570,16 @@
     <div class="ajustes-box">
       <h3>Copia de seguridad</h3>
       <p class="hint">Descargá todos los datos (sin la API key) como respaldo, o restaurá desde un archivo.</p>
-      <div style="margin-top:10px; display:flex; gap:8px;">
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn small ghost" onclick="descargarBackup()">Descargar backup</button>
         <button class="btn small ghost" onclick="document.getElementById('input-restore').click()">Restaurar backup</button>
         <input type="file" id="input-restore" accept="application/json" style="display:none" onchange="restaurarBackup(event)">
       </div>
+      <label class="field-label" for="cfg-mail-backup" style="margin-top:14px;">Guardar una copia en mi mail</label>
+      <input type="email" id="cfg-mail-backup" placeholder="tu-mail@ejemplo.com" autocomplete="email">
+      <p class="hint" style="margin-top:6px;">En el celular se abre la lista de apps para compartir el archivo (elegí tu correo y queda adjunto). En la computadora se descarga el archivo y se abre el mail para que lo adjuntes. El mail se recuerda solo en este dispositivo.</p>
+      <div style="margin-top:10px;"><button class="btn small primary" onclick="enviarBackupPorMail()">Enviar copia por mail</button></div>
+      <p class="hint" id="backup-ultima" style="margin-top:8px;"></p>
     </div>
   </section>
 
@@ -2131,6 +2136,8 @@ function cargarFormAjustes(){
   document.getElementById('cfg-db-url').value = cfg.dbUrl;
   document.getElementById('cfg-api-key').value = cfg.apiKey;
   document.getElementById('cfg-model').value = cfg.model;
+  try{ document.getElementById('cfg-mail-backup').value = localStorage.getItem('santval_mail_backup') || ''; }catch(e){}
+  mostrarUltimoBackup();
 }
 function guardarConfigFirebase(){
   const url = document.getElementById('cfg-db-url').value.trim();
@@ -2148,12 +2155,53 @@ function guardarConfigGemini(){
   toast('Guardado.');
 }
 
+function backupTexto(){
+  return JSON.stringify({emprendimientos: state.emprendimientos, movimientos: state.movimientos}, null, 2);
+}
+function backupNombre(){ return 'santval-backup-' + hoyISO() + '.json'; }
+function marcarBackupHecho(){
+  try{ localStorage.setItem('santval_ultimo_backup', hoyISO()); }catch(e){}
+  mostrarUltimoBackup();
+}
+function mostrarUltimoBackup(){
+  const el = document.getElementById('backup-ultima');
+  if(!el) return;
+  let f = null;
+  try{ f = localStorage.getItem('santval_ultimo_backup'); }catch(e){}
+  el.textContent = f ? 'Última copia hecha desde este dispositivo: ' + fechaDiaMes(f) : 'Todavía no hiciste ninguna copia desde este dispositivo.';
+}
 function descargarBackup(){
-  const blob = new Blob([JSON.stringify({emprendimientos: state.emprendimientos, movimientos: state.movimientos}, null, 2)], {type:'application/json'});
+  const blob = new Blob([backupTexto()], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'santval-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = backupNombre();
   a.click();
+  marcarBackupHecho();
+}
+async function enviarBackupPorMail(){
+  const mail = document.getElementById('cfg-mail-backup').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(mail)){ toast('Poné un correo válido para guardar la copia.'); return; }
+  try{ localStorage.setItem('santval_mail_backup', mail); }catch(e){}
+  const fecha = hoyISO();
+  const texto = backupTexto();
+  const mb = texto.length / (1024*1024);
+  if(mb > 20){ toast('La copia pesa ' + mb.toFixed(1) + ' MB y el correo admite hasta 25 MB.'); }
+  // celulares: la hoja de compartir adjunta el archivo directamente al mail
+  try{
+    const archivo = new File([texto], backupNombre(), {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[archivo]})){
+      await navigator.share({files:[archivo], title:'Backup SANTVAL ' + fecha, text:'Copia de seguridad de SANTVAL del ' + fecha + '. Enviala a ' + mail + '.'});
+      marcarBackupHecho();
+      return;
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return; // cerró la hoja de compartir
+  }
+  // computadora: descarga el archivo y abre el mail redactado (un enlace de mail no puede adjuntar archivos)
+  descargarBackup();
+  const asunto = encodeURIComponent('Backup SANTVAL ' + fecha);
+  const cuerpo = encodeURIComponent('Copia de seguridad de SANTVAL del ' + fecha + '. Adjuntá el archivo ' + backupNombre() + ' que se acaba de descargar.');
+  window.location.href = 'mailto:' + mail + '?subject=' + asunto + '&body=' + cuerpo;
 }
 async function restaurarBackup(ev){
   const file = ev.target.files[0];
