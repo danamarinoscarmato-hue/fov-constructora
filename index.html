@@ -325,9 +325,17 @@
   .chart-legend .swatch{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
 
   /* Cierres mensuales */
-  .cierres-header{display:flex; justify-content:flex-end; margin-bottom:12px;}
+  .cierres-header{display:flex; flex-direction:column; align-items:flex-end; margin-bottom:12px;}
   .cierres-total-pendiente{background:var(--warn-soft); color:var(--warn); border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700;}
   .cierres-total-pendiente.ok{background:var(--ok-soft); color:var(--ok);}
+  .pend-lista{width:100%; margin-top:8px; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .pend-item{display:flex; align-items:baseline; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); cursor:pointer; font-size:13.5px;}
+  .pend-item:last-child{border-bottom:none;}
+  .pend-item:hover{background:#F7F7F6;}
+  .pend-desc{flex:1; min-width:0; font-weight:600; overflow-wrap:anywhere;}
+  .pend-desc.sin-detalle{font-weight:400; color:var(--ink-soft);}
+  .pend-meta{color:var(--ink-soft); font-size:12px; white-space:nowrap;}
+  .pend-monto{font-weight:700; color:var(--out); white-space:nowrap;}
   .mes-list{display:flex; flex-direction:column; gap:10px;}
   .mes-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px;}
   .mes-card .mes-top{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
@@ -641,7 +649,7 @@
     </div>
 
     <div id="mov-block-pendiente" style="display:none;">
-      <label class="check-row"><input type="checkbox" id="mov-pendiente"> Marcar como pendiente de pago (todavía no se pagó)</label>
+      <label class="check-row"><input type="checkbox" id="mov-pendiente" onchange="actualizarCuePendiente()"> Marcar como pendiente de pago (todavía no se pagó)</label>
     </div>
 
     <div id="mov-block-prestamo" style="display:none;">
@@ -652,7 +660,7 @@
       <p class="hint" style="color:var(--ink-soft); margin-top:6px;">Queda asentado como una salida de dinero en el emprendimiento que presta, y como una entrada en el que recibe.</p>
     </div>
 
-    <label class="field-label">Descripción</label>
+    <label class="field-label" id="mov-desc-label">Descripción</label>
     <input type="text" id="mov-desc" placeholder="Ej: Compra de cemento y arena">
     <label class="field-label">Comprobante (opcional)</label>
     <div id="mov-comp-preview" style="display:none; margin-bottom:8px;"></div>
@@ -1659,13 +1667,32 @@ function computeMonthlyStats(contextEmpId, moneda){
 
 function computeTotalPendiente(contextEmpId, moneda){
   let total = 0, count = 0;
-  Object.values(state.movimientos).forEach(m=>{
+  const items = [];
+  Object.entries(state.movimientos).forEach(([id, m])=>{
     if(m.moneda!==moneda || m.tipo!=='egreso' || m.estadoPago!=='pendiente') return;
     if(!movPerteneceAContexto(m, contextEmpId)) return;
     total += Number(m.monto||0);
     count++;
+    items.push({id, fecha:m.fecha, monto:Number(m.monto||0), detalle:m.descripcion||'', categoria:m.categoria||'', empId:m.empId||null});
   });
-  return {total, count};
+  items.sort((a,b)=> a.fecha.localeCompare(b.fecha)); // lo más viejo primero
+  return {total, count, items};
+}
+
+// Lista de cada pago pendiente: en qué se debe, de qué obra y cuánto
+function renderPendientesLista(items, moneda, mostrarObra){
+  if(!items.length) return '';
+  return `<div class="pend-lista">` + items.map(it=>{
+    const obra = mostrarObra ? (it.empId && state.emprendimientos[it.empId] ? state.emprendimientos[it.empId].nombre : 'General') : '';
+    const texto = it.detalle
+      ? `<span class="pend-desc">${esc(it.detalle)}</span>`
+      : `<span class="pend-desc sin-detalle">${esc(it.categoria || 'Sin categoría')} · sin detalle (tocá para completar)</span>`;
+    return `<div class="pend-item" onclick="openEditarMov('${it.id}')">
+      ${texto}
+      <span class="pend-meta">${fechaDiaMes(it.fecha)}${obra ? ' · ' + esc(obra) : ''}</span>
+      <span class="pend-monto">${fmtMonto(it.monto, moneda)}</span>
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 function renderMesDelta(valor, moneda, invertido){
@@ -1687,6 +1714,7 @@ function renderCierresPanel(contenedorId, contextEmpId){
   const currentYm = mesActualYM();
   const pendienteHtml = pend.total>0
     ? `<div class="cierres-total-pendiente">⚠ Pendiente de pago hoy: ${fmtMonto(pend.total, moneda)} (${pend.count} movimiento${pend.count===1?'':'s'})</div>`
+      + renderPendientesLista(pend.items, moneda, contextEmpId===undefined)
     : `<div class="cierres-total-pendiente ok">✓ No hay pagos pendientes</div>`;
   if(!stats.length){
     cont.innerHTML = `<div class="cierres-header">${pendienteHtml}</div><div class="chart-empty">Todavía no hay movimientos para armar estadísticas mensuales.</div>`;
@@ -1940,6 +1968,14 @@ function setMovTipo(t){
   document.getElementById('mov-block-normal').style.display = t==='prestamo' ? 'none' : '';
   document.getElementById('mov-block-prestamo').style.display = t==='prestamo' ? '' : 'none';
   document.getElementById('mov-block-pendiente').style.display = t==='egreso' ? '' : 'none';
+  actualizarCuePendiente();
+}
+
+// Si el egreso queda pendiente de pago, el campo de descripción pasa a preguntar en qué se debe el dinero
+function actualizarCuePendiente(){
+  const pend = movTipoActual==='egreso' && document.getElementById('mov-pendiente').checked;
+  document.getElementById('mov-desc-label').textContent = pend ? '¿En qué se debe este dinero?' : 'Descripción';
+  document.getElementById('mov-desc').placeholder = pend ? 'Ej: Cemento y arena a Corralón López' : 'Ej: Compra de cemento y arena';
 }
 
 function openNuevoMov(empIdForzado){
@@ -1955,6 +1991,7 @@ function openNuevoMov(empIdForzado){
   document.getElementById('mov-desc').value = '';
   document.getElementById('mov-emp').value = empIdForzado || '';
   document.getElementById('mov-pendiente').checked = false;
+  actualizarCuePendiente();
   if(empIdForzado) document.getElementById('mov-emp-origen').value = empIdForzado;
   document.getElementById('mov-comp-preview').style.display = 'none';
   document.getElementById('mov-comp-input').value = '';
@@ -1973,6 +2010,7 @@ function openEditarMov(id){
   document.getElementById('mov-monto').value = m.monto;
   document.getElementById('mov-desc').value = m.descripcion || '';
   document.getElementById('mov-pendiente').checked = (m.tipo==='egreso' && m.estadoPago==='pendiente');
+  actualizarCuePendiente();
   if(m.tipo==='prestamo'){
     document.getElementById('mov-emp-origen').value = m.empOrigenId || '';
     document.getElementById('mov-emp-destino').value = m.empDestinoId || '';
